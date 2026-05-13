@@ -1,0 +1,8 @@
+{
+  "name": "NAPES Yabatech | Engineering Hub",
+  "description": "The official premium portal for the National Association of Polytechnic Engineering Students, Yabatech. Resource management, student registration, and industry networking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

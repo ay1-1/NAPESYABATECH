@@ -1,0 +1,59 @@
+{
+  "entities": {
+    "Student": {
+      "title": "Student Profile",
+      "description": "Registered engineering student in the NAPES Yabatech portal.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "fullName": { "type": "string" },
+        "matricNumber": { "type": "string" },
+        "department": { "type": "string", "enum": ["Civil", "Mechanical", "Electrical", "Computer", "Chemical", "Industrial"] },
+        "level": { "type": "string", "enum": ["ND1", "ND2", "HND1", "HND2"] },
+        "isPaid": { "type": "boolean", "description": "Status of chapter dues" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "fullName", "matricNumber", "department"]
+    },
+    "Resource": {
+      "title": "Engineering Resource",
+      "description": "Technical papers, projects, or tutorials.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "category": { "type": "string", "enum": ["Civil", "Mechanical", "Electrical", "General", "Research"] },
+        "type": { "type": "string", "enum": ["PDF", "Video", "Code", "Article"] },
+        "description": { "type": "string" },
+        "downloadUrl": { "type": "string" },
+        "uploadedBy": { "type": "string", "description": "Student UID or Admin ID" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "News": {
+      "title": "Official Announcement",
+      "description": "Governance updates and news.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "isElectionUpdate": { "type": "boolean" },
+        "publishedAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "/students/{studentId}": {
+      "schema": "Student",
+      "description": "Collection of registered engineering students."
+    },
+    "/resources/{resourceId}": {
+      "schema": "Resource",
+      "description": "A repository of academic and technical content."
+    },
+    "/announcements/{newsId}": {
+      "schema": "News",
+      "description": "Official news and updates from the executive council."
+    }
+  }
+}

@@ -1,0 +1,40 @@
+import express from "express";
+import path from "path";
+import { createServer as createViteServer } from "vite";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+async function startServer() {
+  const app = express();
+  const PORT = 3000;
+
+  app.use(express.json());
+
+  // API placeholder for paystack verification
+  app.post("/api/verify-payment", (req, res) => {
+    // In a real app, verify with Paystack secret
+    res.json({ status: "success", message: "Payment verified simulated" });
+  });
+
+  if (process.env.NODE_ENV !== "production") {
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: "spa",
+    });
+    app.use(vite.middlewares);
+  } else {
+    const distPath = path.join(process.cwd(), "dist");
+    app.use(express.static(distPath));
+    app.get("*", (req, res) => {
+      res.sendFile(path.join(distPath, "index.html"));
+    });
+  }
+
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`NAPES Hub Running on http://localhost:${PORT}`);
+  });
+}
+
+startServer();
