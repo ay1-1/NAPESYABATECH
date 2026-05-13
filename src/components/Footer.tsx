@@ -7,9 +7,20 @@ export const Footer = () => {
       <div className="container mx-auto px-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
           <div className="col-span-1 lg:col-span-1">
-            <div className="flex items-center gap-2 mb-6">
-              <div className="w-10 h-10 bg-accent rounded-xl flex items-center justify-center text-black font-bold text-xl">N</div>
-              <div className="font-display font-bold text-xl tracking-tight">NAPES <span className="text-accent">YABATECH</span></div>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center p-1">
+                <img 
+                  src="/napes_logo.png" 
+                  alt="NAPES Logo" 
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.parentElement!.innerHTML = '<div class="text-primary font-black text-xl">N</div>';
+                    e.currentTarget.parentElement!.classList.add('bg-accent');
+                  }}
+                />
+              </div>
+              <div className="font-display font-bold text-xl tracking-tight">NAPES <span className="text-accent uppercase">Yabatech</span></div>
             </div>
             <p className="text-gray-500 mb-8 leading-relaxed">
               Leading the innovation wave in Polytechnic engineering education. Building systems that matter.

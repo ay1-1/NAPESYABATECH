@@ -23,12 +23,22 @@ export const Navbar = () => {
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'py-4 glass-navbar' : 'py-8 bg-transparent'}`}>
       <div className="container mx-auto px-6 flex items-center justify-between">
         <div className="flex items-center gap-3 group cursor-pointer">
-          <div className="w-11 h-11 bg-accent rounded-2xl flex items-center justify-center text-primary font-black text-2xl group-hover:rotate-6 transition-transform glow-accent">
-            N
+          <div className="w-11 h-11 bg-white rounded-2xl flex items-center justify-center p-1 group-hover:rotate-6 transition-transform glow-accent">
+            <img 
+              src="/napes_logo.png" 
+              alt="NAPES Logo" 
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                // Fallback for when the file isn't found
+                e.currentTarget.style.display = 'none';
+                e.currentTarget.parentElement!.innerHTML = '<div class="text-primary font-black text-2xl">N</div>';
+                e.currentTarget.parentElement!.classList.add('bg-accent');
+              }}
+            />
           </div>
           <div className="flex flex-col">
             <span className="font-display font-bold text-xl tracking-tighter leading-none text-white">NAPES</span>
-            <span className="text-[9px] text-accent/60 tracking-[0.4em] font-mono font-bold">YABATECH HUB</span>
+            <span className="text-[9px] text-accent/60 tracking-[0.4em] font-mono font-bold uppercase">Yabatech Hub</span>
           </div>
         </div>
 

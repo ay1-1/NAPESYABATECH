@@ -64,9 +64,9 @@ export const Hero = () => {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-accent/20 bg-accent/5 text-accent text-sm font-medium mb-12 tracking-wide"
+          className="inline-flex items-center gap-3 px-5 py-2 rounded-full border border-accent/20 bg-accent/5 text-accent text-xs font-bold mb-12 tracking-widest uppercase"
         >
-          <Cpu size={14} className="animate-spin-slow" />
+          <img src="/napes_logo.png" alt="NAPES" className="w-5 h-5 object-contain" />
           <span>NATIONAL ASSOCIATION OF POLYTECHNIC ENGINEERING STUDENTS</span>
         </motion.div>
 
