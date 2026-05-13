@@ -5,24 +5,44 @@ import { ArrowRight, Cpu, ShieldCheck } from 'lucide-react';
 
 export const Hero = () => {
   const heroRef = useRef<HTMLDivElement>(null);
-  const titleRef = useRef<HTMLHeadingElement>(null);
+  const titleContainerRef = useRef<HTMLHeadingElement>(null);
+  const subtitleRef = useRef<HTMLParagraphElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      gsap.from(titleRef.current, {
-        y: 100,
+      // Split text animation logic (simple version for the component)
+      const title = titleContainerRef.current;
+      if (title) {
+        const text = title.innerText;
+        title.innerHTML = text.split("").map(char => 
+          `<span class="char inline-block">${char === " " ? "&nbsp;" : char}</span>`
+        ).join("");
+
+        gsap.from(".char", {
+          opacity: 0,
+          y: 60,
+          filter: "blur(10px)",
+          stagger: 0.03,
+          duration: 1,
+          ease: "back.out(1.7)",
+          delay: 0.5
+        });
+      }
+
+      gsap.from(subtitleRef.current, {
         opacity: 0,
-        duration: 1.2,
-        ease: "power4.out",
-        delay: 0.5
+        y: 20,
+        duration: 0.8,
+        delay: 1.5
       });
+
       gsap.from(ctaRef.current, {
-        y: 40,
         opacity: 0,
-        duration: 1,
-        ease: "power3.out",
-        delay: 1.2
+        scale: 0.9,
+        duration: 0.8,
+        delay: 1.8,
+        ease: "power2.out"
       });
     }, heroRef);
 
@@ -32,59 +52,63 @@ export const Hero = () => {
   return (
     <section 
       ref={heroRef}
-      className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20"
+      className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20 mesh-gradient"
     >
-      {/* Background elements */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-accent/20 rounded-full blur-[128px]" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[128px]" />
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10" />
+      <div className="absolute inset-0 z-0 overflow-hidden">
+        <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-accent/10 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px]" />
       </div>
 
       <div className="container mx-auto px-6 relative z-10 text-center">
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-accent/30 bg-accent/5 text-accent text-sm mb-8"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-accent/20 bg-accent/5 text-accent text-sm font-medium mb-12 tracking-wide"
         >
-          <Cpu size={14} />
-          <span>Innovating Engineering Excellence</span>
+          <Cpu size={14} className="animate-spin-slow" />
+          <span>NATIONAL ASSOCIATION OF POLYTECHNIC ENGINEERING STUDENTS</span>
         </motion.div>
 
         <h1 
-          ref={titleRef}
-          className="text-6xl md:text-8xl font-display font-bold mb-6 tracking-tight"
+          ref={titleContainerRef}
+          className="text-6xl md:text-9xl font-display font-bold mb-8 tracking-tighter leading-[0.9] text-white text-glow"
         >
-          NAPES <span className="text-accent underline decoration-gold/50 decoration-4 underline-offset-8">YABATECH</span>
+          NAPES YABATECH
         </h1>
         
-        <p className="text-xl md:text-2xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-          The Hub for Nigeria's brightest engineering minds. Moving beyond basics to a premium digital resource and community ecosystem.
+        <p 
+          ref={subtitleRef}
+          className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-12 leading-relaxed font-light"
+        >
+          Advancing engineering precision through a premium digital ecosystem. Resources, community, and governance—reimagined for the modern student.
         </p>
 
         <div 
           ref={ctaRef}
-          className="flex flex-col sm:flex-row items-center justify-center gap-4"
+          className="flex flex-col sm:flex-row items-center justify-center gap-6"
         >
-          <button className="bg-accent hover:bg-accent/90 text-black font-bold px-8 py-4 rounded-xl flex items-center gap-2 transition-all group">
-            Student Portal
+          <button className="w-full sm:w-auto bg-accent hover:bg-accent/90 text-primary font-bold px-10 py-4 rounded-2xl flex items-center justify-center gap-2 transition-all group glow-accent">
+            Portal Access
             <ArrowRight className="group-hover:translate-x-1 transition-transform" />
           </button>
-          <button className="bg-white/5 hover:bg-white/10 border border-white/10 px-8 py-4 rounded-xl transition-all">
-            Browse Resources
+          <button className="w-full sm:w-auto glass-card px-10 py-4 rounded-2xl transition-all font-semibold hover:bg-white/5">
+            Engineering Vault
           </button>
         </div>
 
-        <div className="mt-20 flex justify-center gap-12 text-sm text-gray-500 uppercase tracking-widest">
-          <div className="flex items-center gap-2">
-            <ShieldCheck size={16} className="text-accent" />
-            SECURE ACCESS
-          </div>
-          <div className="flex items-center gap-2">
-            <Cpu size={16} className="text-accent" />
-            ALUMNI NETWORK
-          </div>
+        <div className="mt-24 grid grid-cols-2 lg:grid-cols-4 gap-4 opacity-40">
+          {[
+            { label: "Research", icon: ShieldCheck },
+            { label: "Community", icon: Cpu },
+            { label: "Industry", icon: ArrowRight },
+            { label: "Alumni", icon: ShieldCheck }
+          ].map((item, i) => (
+            <div key={i} className="flex items-center justify-center gap-2 text-[10px] uppercase tracking-[0.3em]">
+              <item.icon size={12} className="text-accent" />
+              {item.label}
+            </div>
+          ))}
         </div>
       </div>
     </section>
