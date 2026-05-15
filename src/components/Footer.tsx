@@ -1,79 +1,93 @@
 import React from 'react';
-import { Facebook, Twitter, Instagram, Linkedin, Mail, MapPin } from 'lucide-react';
+import { motion } from 'motion/react';
+import { Github, Twitter, Linkedin, Mail, MapPin, Phone, Instagram } from 'lucide-react';
 
 export const Footer = () => {
   return (
-    <footer className="pt-24 pb-12 bg-[#050505] border-t border-white/5">
+    <footer className="bg-secondary text-white pt-32 pb-16 relative overflow-hidden">
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      
       <div className="container mx-auto px-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
-          <div className="col-span-1 lg:col-span-1">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center p-1">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-20 mb-20">
+          <div className="lg:col-span-5">
+            <div className="flex items-center gap-4 mb-8 group cursor-pointer">
+              <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center p-2 shadow-2xl shadow-primary/20 group-hover:-rotate-3 transition-transform">
                 <img 
                   src="/napes_logo.png" 
                   alt="NAPES Logo" 
                   className="w-full h-full object-contain"
                   onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    e.currentTarget.parentElement!.innerHTML = '<div class="text-primary font-black text-xl">N</div>';
-                    e.currentTarget.parentElement!.classList.add('bg-accent');
+                    const target = e.currentTarget;
+                    target.style.display = 'none';
+                    const parent = target.parentElement;
+                    if (parent && !parent.querySelector('.fallback-logo')) {
+                      const fallback = document.createElement('div');
+                      fallback.className = 'fallback-logo text-primary font-black text-3xl';
+                      fallback.textContent = 'N';
+                      parent.appendChild(fallback);
+                    }
                   }}
                 />
               </div>
-              <div className="font-display font-bold text-xl tracking-tight">NAPES <span className="text-accent uppercase">Yabatech</span></div>
+              <div className="flex flex-col">
+                <span className="font-display font-black text-3xl tracking-tighter leading-none">NAPES</span>
+                <span className="text-[10px] text-primary tracking-[0.4em] font-bold uppercase">Yabatech Hub</span>
+              </div>
             </div>
-            <p className="text-gray-500 mb-8 leading-relaxed">
-              Leading the innovation wave in Polytechnic engineering education. Building systems that matter.
+            
+            <p className="text-white/60 max-w-sm mb-10 leading-relaxed font-light text-lg">
+              Advancing engineering precision through a premium digital ecosystem. Empowering the next generation of Nigerian engineers at Yaba College of Technology.
             </p>
+
             <div className="flex gap-4">
-              {[Twitter, Instagram, Linkedin, Facebook].map((Icon, i) => (
-                <a key={i} href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:bg-accent hover:text-black transition-all">
-                  <Icon size={18} />
+              {[Twitter, Instagram, Linkedin, Mail].map((Icon, i) => (
+                <a key={i} href="#" className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-white/50 hover:bg-primary hover:text-white transition-all border border-white/10">
+                  <Icon size={20} />
                 </a>
               ))}
             </div>
           </div>
 
-          <div>
-            <h4 className="font-display font-bold mb-6 text-lg">The Hub</h4>
-            <ul className="space-y-4 text-gray-500 text-sm">
-              <li><a href="#" className="hover:text-accent transition-colors">Resources Library</a></li>
-              <li><a href="#" className="hover:text-accent transition-colors">Student Portal</a></li>
-              <li><a href="#" className="hover:text-accent transition-colors">Career Hub</a></li>
-              <li><a href="#" className="hover:text-accent transition-colors">Payment Gateway</a></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-display font-bold mb-6 text-lg">Community</h4>
-            <ul className="space-y-4 text-gray-500 text-sm">
-              <li><a href="#" className="hover:text-accent transition-colors">HerEngineering</a></li>
-              <li><a href="#" className="hover:text-accent transition-colors">Alumni Network</a></li>
-              <li><a href="#" className="hover:text-accent transition-colors">Technical Clubs</a></li>
-              <li><a href="#" className="hover:text-accent transition-colors">Election Portal</a></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-display font-bold mb-6 text-lg">Contact Us</h4>
-            <ul className="space-y-4 text-gray-500 text-sm">
-              <li className="flex items-start gap-3">
-                <MapPin size={18} className="text-accent shrink-0" />
-                <span>School of Engineering, Yaba College of Technology, Lagos State.</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <Mail size={18} className="text-accent shrink-0" />
-                <span>info@napesyabatech.org</span>
-              </li>
-            </ul>
+          <div className="lg:col-span-7 grid grid-cols-2 md:grid-cols-3 gap-12">
+            <div className="space-y-6">
+              <h4 className="text-xs font-black uppercase tracking-[0.3em] text-primary">Ecosystem</h4>
+              <ul className="space-y-4">
+                {['The Hub', 'Archives', 'Publications', 'Impact Stats'].map(item => (
+                  <li key={item}><a href="#" className="text-white/50 hover:text-white transition-colors text-sm font-medium">{item}</a></li>
+                ))}
+              </ul>
+            </div>
+            <div className="space-y-6">
+              <h4 className="text-xs font-black uppercase tracking-[0.3em] text-primary">Governance</h4>
+              <ul className="space-y-4">
+                {['Executive Council', 'Electoral Body', 'Constitution', 'Financial Reports'].map(item => (
+                  <li key={item}><a href="#" className="text-white/50 hover:text-white transition-colors text-sm font-medium">{item}</a></li>
+                ))}
+              </ul>
+            </div>
+            <div className="space-y-6">
+              <h4 className="text-xs font-black uppercase tracking-[0.3em] text-primary">Contact</h4>
+              <ul className="space-y-4">
+                <li className="flex items-start gap-3 text-white/50 text-sm">
+                  <MapPin size={18} className="text-primary shrink-0" />
+                  <span>Engineering Block, Yaba College of Technology, Lagos.</span>
+                </li>
+                <li className="flex items-center gap-3 text-white/50 text-sm">
+                  <Phone size={18} className="text-primary shrink-0" />
+                  <span>+234 812 345 6789</span>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
 
-        <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
-          <p className="text-gray-600 text-xs font-mono">© 2026 NAPES YABATECH. ALL RIGHTS RESERVED.</p>
-          <div className="flex gap-8 text-gray-600 text-xs font-mono">
-            <a href="#" className="hover:text-white">PRIVACY POLICY</a>
-            <a href="#" className="hover:text-white">TERMS OF SERVICE</a>
+        <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
+          <p className="text-white/30 text-xs font-medium tracking-widest uppercase">
+            &copy; 2026 NAPES Yabatech Council. Built for Precision.
+          </p>
+          <div className="flex gap-8">
+            <a href="#" className="text-white/30 hover:text-white text-xs font-medium tracking-widest uppercase transition-colors">Privacy Policy</a>
+            <a href="#" className="text-white/30 hover:text-white text-xs font-medium tracking-widest uppercase transition-colors">Term of Service</a>
           </div>
         </div>
       </div>

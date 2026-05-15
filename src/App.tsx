@@ -25,7 +25,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="min-h-screen selection:bg-accent selection:text-black">
+    <div className="min-h-screen selection:bg-primary selection:text-white bg-surface">
       <Navbar />
       
       <main>
@@ -48,27 +48,40 @@ export default function App() {
         </div>
 
         {/* Industrial CTA Section */}
-        <section className="py-24 relative">
+        <section className="py-40 relative bg-surface">
           <div className="container mx-auto px-6">
-            <div className="glass-card p-12 md:p-20 rounded-[2rem] border-accent/20 bg-gradient-to-br from-primary/20 via-black to-accent/10 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-accent/20 blur-[100px] -translate-y-1/2 translate-x-1/2" />
+            <div 
+              data-aos="zoom-in"
+              className="p-16 md:p-32 rounded-[4rem] bg-secondary border border-white/5 relative overflow-hidden group shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)]"
+            >
+              <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/10 blur-[120px] -translate-y-1/2 translate-x-1/2" />
+              <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/5 blur-[100px] translate-y-1/2 -translate-x-1/2" />
               
-              <div className="relative z-10 text-center max-w-3xl mx-auto">
-                <h2 className="text-4xl md:text-6xl font-display font-bold mb-8">
-                  Ready to Build the <span className="text-accent underline decoration-gold/30 underline-offset-8">Future?</span>
+              <div className="relative z-10 text-center max-w-4xl mx-auto">
+                <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full border border-white/10 bg-white/5 text-primary text-[10px] font-black uppercase tracking-[0.4em] mb-12">
+                   Institutional Hub Access
+                </div>
+                <h2 className="text-5xl md:text-8xl font-display font-black mb-10 text-white tracking-tighter leading-[0.9]">
+                  Ready to Build the <span className="text-primary italic">Future?</span>
                 </h2>
-                <p className="text-xl text-gray-400 mb-10 leading-relaxed">
-                  Join the official NAPES Yabatech portal today. Pay your dues, access resources, and get connected with top industry partners.
+                <p className="text-xl md:text-2xl text-white/50 mb-16 leading-relaxed font-light">
+                  Join the official NAPES Yabatech portal today. Pay your dues, access resources, and get connected with top industry partners across the globe.
                 </p>
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-                  <button className="w-full sm:w-auto bg-accent hover:bg-accent/90 text-black font-bold px-10 py-5 rounded-2xl transition-all shadow-xl shadow-accent/20">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-8">
+                  <button className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white font-black px-12 py-6 rounded-[2rem] transition-all shadow-2xl shadow-primary/20 uppercase tracking-widest text-xs">
                     Create Student Profile
                   </button>
-                  <button className="w-full sm:w-auto bg-white/5 hover:bg-white/10 px-10 py-5 rounded-2xl border border-white/10 transition-all">
+                  <button className="w-full sm:w-auto bg-white/5 hover:bg-primary transition-all px-12 py-6 rounded-[2rem] border border-white/10 text-white font-black uppercase tracking-widest text-xs">
                     Legacy Program Signup
                   </button>
                 </div>
               </div>
+
+              {/* Decorative elements */}
+              <div className="absolute top-12 left-12 w-24 h-px bg-white/10" />
+              <div className="absolute top-12 left-12 h-24 w-px bg-white/10" />
+              <div className="absolute bottom-12 right-12 w-24 h-px bg-white/10" />
+              <div className="absolute bottom-12 right-12 h-24 w-px bg-white/10" />
             </div>
           </div>
         </section>
