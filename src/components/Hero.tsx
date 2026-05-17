@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { gsap } from 'gsap';
+
 import {
   ArrowRight,
   ChevronLeft,
@@ -8,6 +9,7 @@ import {
   UserCheck,
 } from 'lucide-react';
 
+/* LOCAL HERO IMAGES */
 import one from '../assets/one.jpg';
 import two from '../assets/two.jpg';
 import three from '../assets/three.jpg';
@@ -89,7 +91,7 @@ export const Hero = () => {
     return () => clearInterval(timer);
   }, []);
 
-  /* TITLE ANIMATION */
+  /* GSAP TITLE ANIMATION */
   useEffect(() => {
     const ctx = gsap.context(() => {
       const title = titleContainerRef.current;
@@ -153,18 +155,29 @@ export const Hero = () => {
         </AnimatePresence>
       </div>
 
-      {/* CONTENT */}
+      {/* HERO CONTENT */}
       <div className="container mx-auto px-6 relative z-10 pt-20">
         <div className="grid lg:grid-cols-12 gap-12 items-center">
           {/* LEFT SIDE */}
           <div className="lg:col-span-8 text-left">
+            
+            {/* TOP BADGE */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="flex items-center gap-3 mb-8"
+              className="flex items-center gap-4 mb-8"
             >
+              {/* LOGO */}
+              <img
+                src="/napeslogo.jpg"
+                alt="NAPES Logo"
+                className="w-14 h-14 object-contain rounded-full shadow-lg"
+              />
+
+              {/* LINE */}
               <div className="h-[1px] w-12 bg-red-500/50" />
 
+              {/* TEXT */}
               <span className="text-white text-xs font-bold tracking-[0.4em] uppercase opacity-80">
                 Premium Engineering Portal
               </span>
@@ -199,7 +212,7 @@ export const Hero = () => {
             </div>
           </div>
 
-          {/* RIGHT CARD */}
+          {/* RIGHT LOGIN CARD */}
           <div className="lg:col-span-4 hidden lg:block">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -269,6 +282,7 @@ export const Hero = () => {
 
         {/* BOTTOM CONTROLS */}
         <div className="absolute bottom-12 left-6 right-6 flex items-center justify-between">
+          
           {/* DOTS */}
           <div className="flex gap-4">
             {carouselImages.map((_, i) => (
