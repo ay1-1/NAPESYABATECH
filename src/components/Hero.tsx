@@ -126,15 +126,16 @@ export const Hero = () => {
 
   return (
     <section
+      id="home"
       ref={heroRef}
-      className="relative min-h-screen flex items-center justify-center overflow-hidden"
+      className="relative min-h-screen flex items-center justify-center overflow-hidden bg-slate-950"
     >
       {/* BACKGROUND IMAGES */}
-      <div className="absolute inset-0 z-0">
-        <AnimatePresence mode="wait">
+      <div className="absolute inset-0 z-0 bg-slate-950">
+        <AnimatePresence initial={false}>
           <motion.div
             key={activeSlide}
-            initial={{ opacity: 0, scale: 1.1 }}
+            initial={{ opacity: 0, scale: 1.08 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 1.5, ease: 'easeInOut' }}
@@ -156,43 +157,21 @@ export const Hero = () => {
       </div>
 
       {/* HERO CONTENT */}
-      <div className="container mx-auto px-6 relative z-10 pt-20">
+      <div className="container mx-auto px-6 relative z-10 pt-36 sm:pt-40 md:pt-48 pb-20">
         <div className="grid lg:grid-cols-12 gap-12 items-center">
           {/* LEFT SIDE */}
           <div className="lg:col-span-8 text-left">
-            
-            {/* TOP BADGE */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="flex items-center gap-4 mb-8"
-            >
-              {/* LOGO */}
-              <img
-                src="/napeslogo.jpg"
-                alt="NAPES Logo"
-                className="w-14 h-14 object-contain rounded-full shadow-lg"
-              />
-
-              {/* LINE */}
-              <div className="h-[1px] w-12 bg-red-500/50" />
-
-              {/* TEXT */}
-              <span className="text-white text-xs font-bold tracking-[0.4em] uppercase opacity-80">
-                Premium Engineering Portal
-              </span>
-            </motion.div>
 
             {/* MAIN TITLE */}
             <h1
               ref={titleContainerRef}
-              className="text-5xl md:text-[8rem] font-black mb-10 tracking-tighter leading-none text-white drop-shadow-2xl"
+              className="text-4xl sm:text-5xl md:text-7xl lg:text-[6.5rem] font-black mb-8 md:mb-10 tracking-tighter leading-none text-white drop-shadow-2xl"
             >
               NAPES YABATECH
             </h1>
 
             {/* DESCRIPTION */}
-            <p className="text-xl md:text-2xl text-white/90 max-w-2xl mb-12 leading-relaxed font-light">
+            <p className="text-lg md:text-xl text-white/80 max-w-2xl mb-10 md:mb-12 leading-relaxed font-light">
               Advancing engineering precision through a premium digital
               ecosystem. Resources, leadership, innovation, and community
               reimagined for the modern student engineer.

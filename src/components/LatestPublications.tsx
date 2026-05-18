@@ -34,14 +34,14 @@ const publications = [
 
 export const LatestPublications = () => {
   return (
-    <section className="py-32 bg-white" id="news">
+    <section className="py-32 bg-white" id="articles">
       <div className="container mx-auto px-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-20 gap-8">
           <div data-aos="fade-right">
-            <h2 className="text-5xl font-display font-black mb-6 tracking-tight text-secondary leading-tight">
-              Latest <span className="text-primary italic">Publications</span>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-display font-black mb-6 tracking-tight text-secondary leading-tight">
+              Latest <span className="text-primary italic">Articles</span>
             </h2>
-            <p className="text-slate-500 max-w-xl text-lg font-light leading-relaxed">
+            <p className="text-slate-500 max-w-xl text-base md:text-lg font-light leading-relaxed">
               Stay updated with official announcements, student spotlights, and technical breakthroughs within the Faculty of Engineering.
             </p>
           </div>
@@ -81,10 +81,10 @@ export const LatestPublications = () => {
               </div>
               
               <div className="px-4">
-                <h3 className="text-2xl font-display font-black text-secondary mb-4 tracking-tighter leading-snug group-hover:text-primary transition-colors">
+                <h3 className="text-xl font-display font-black text-secondary mb-3 tracking-tighter leading-snug group-hover:text-primary transition-colors">
                   {news.title}
                 </h3>
-                <p className="text-slate-500 text-base mb-6 line-clamp-2 leading-relaxed font-light">
+                <p className="text-slate-500 text-sm md:text-base mb-6 line-clamp-2 leading-relaxed font-light">
                   {news.desc}
                 </p>
                 <div className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-primary group-hover:gap-4 transition-all">

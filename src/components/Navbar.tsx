@@ -13,32 +13,21 @@ export const Navbar = () => {
   }, []);
 
   const navLinks = [
-    { name: 'The Hub', href: '#' },
-    { name: 'Archives', href: '#vault' },
-    { name: 'Publications', href: '#news' },
-    { name: 'Faculty', href: '#her' },
+    { name: 'Home', href: '#home' },
+    { name: 'Articles', href: '#articles' },
+    { name: 'Gallery', href: '#gallery' },
+    { name: 'Support', href: '#support' },
   ];
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'py-4 glass-navbar shadow-lg shadow-secondary/5' : 'py-8 bg-transparent'}`}>
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'py-3 sm:py-4 glass-navbar shadow-lg shadow-secondary/5' : 'py-4 sm:py-6 lg:py-8 bg-transparent'}`}>
       <div className="container mx-auto px-6 flex items-center justify-between">
         <div className="flex items-center gap-4 group cursor-pointer">
           <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center p-2 shadow-xl shadow-primary/10 group-hover:rotate-6 transition-transform">
             <img 
-              src="/napes_logo.png" 
+              src="/napeslogo.jpg" 
               alt="NAPES Logo" 
-              className="w-full h-full object-contain"
-              onError={(e) => {
-                const target = e.currentTarget;
-                target.style.display = 'none';
-                const parent = target.parentElement;
-                if (parent && !parent.querySelector('.fallback-logo')) {
-                  const fallback = document.createElement('div');
-                  fallback.className = 'fallback-logo text-primary font-black text-3xl';
-                  fallback.textContent = 'N';
-                  parent.appendChild(fallback);
-                }
-              }}
+              className="w-full h-full object-contain rounded-xl"
             />
           </div>
           <div className="flex flex-col">

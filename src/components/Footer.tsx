@@ -13,20 +13,9 @@ export const Footer = () => {
             <div className="flex items-center gap-4 mb-8 group cursor-pointer">
               <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center p-2 shadow-2xl shadow-primary/20 group-hover:-rotate-3 transition-transform">
                 <img 
-                  src="/napes_logo.png" 
+                  src="/napeslogo.jpg" 
                   alt="NAPES Logo" 
-                  className="w-full h-full object-contain"
-                  onError={(e) => {
-                    const target = e.currentTarget;
-                    target.style.display = 'none';
-                    const parent = target.parentElement;
-                    if (parent && !parent.querySelector('.fallback-logo')) {
-                      const fallback = document.createElement('div');
-                      fallback.className = 'fallback-logo text-primary font-black text-3xl';
-                      fallback.textContent = 'N';
-                      parent.appendChild(fallback);
-                    }
-                  }}
+                  className="w-full h-full object-contain rounded-xl"
                 />
               </div>
               <div className="flex flex-col">
@@ -52,8 +41,17 @@ export const Footer = () => {
             <div className="space-y-6">
               <h4 className="text-xs font-black uppercase tracking-[0.3em] text-primary">Ecosystem</h4>
               <ul className="space-y-4">
-                {['The Hub', 'Archives', 'Publications', 'Impact Stats'].map(item => (
-                  <li key={item}><a href="#" className="text-white/50 hover:text-white transition-colors text-sm font-medium">{item}</a></li>
+                {[
+                  { name: 'Home', href: '#home' },
+                  { name: 'Articles', href: '#articles' },
+                  { name: 'Gallery', href: '#gallery' },
+                  { name: 'Support Center', href: '#support' },
+                ].map(item => (
+                  <li key={item.name}>
+                    <a href={item.href} className="text-white/50 hover:text-white transition-colors text-sm font-medium">
+                      {item.name}
+                    </a>
+                  </li>
                 ))}
               </ul>
             </div>
