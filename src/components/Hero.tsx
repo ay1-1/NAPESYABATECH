@@ -259,51 +259,6 @@ export const Hero = () => {
           </div>
         </div>
 
-        {/* BOTTOM CONTROLS */}
-        <div className="absolute bottom-12 left-6 right-6 flex items-center justify-between">
-          
-          {/* DOTS */}
-          <div className="flex gap-4">
-            {carouselImages.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setActiveSlide(i)}
-                className={`w-3 h-3 rounded-full transition-all ${
-                  activeSlide === i
-                    ? 'bg-white scale-125'
-                    : 'bg-white/40'
-                }`}
-              />
-            ))}
-          </div>
-
-          {/* ARROWS */}
-          <div className="flex gap-6">
-            <button
-              onClick={() =>
-                setActiveSlide(
-                  (prev) =>
-                    (prev - 1 + carouselImages.length) %
-                    carouselImages.length
-                )
-              }
-              className="p-4 rounded-full border border-white/20 text-white hover:bg-white/10 transition-all"
-            >
-              <ChevronLeft size={20} />
-            </button>
-
-            <button
-              onClick={() =>
-                setActiveSlide(
-                  (prev) => (prev + 1) % carouselImages.length
-                )
-              }
-              className="p-4 rounded-full border border-white/20 text-white hover:bg-white/10 transition-all"
-            >
-              <ChevronRight size={20} />
-            </button>
-          </div>
-        </div>
       </div>
     </section>
   );

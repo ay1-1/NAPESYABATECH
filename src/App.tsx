@@ -29,11 +29,11 @@ export default function App() {
       <main>
         <Hero />
         
+        <Support />
+        
         <LatestPublications />
         
         <Gallery />
-        
-        <Support />
       </main>
 
       <Footer />
