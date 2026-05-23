@@ -232,6 +232,7 @@ export const Gallery = () => {
                         <img
                           src={img.url}
                           alt={img.title}
+                          loading="lazy"
                           className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                         />
 
@@ -394,7 +395,7 @@ export const Gallery = () => {
                         onClick={() => openLightbox(img.url)}
                         className="cursor-pointer relative overflow-hidden rounded-2xl aspect-square bg-slate-100 border border-slate-200/50 shadow-sm"
                       >
-                        <img src={img.url} alt={img.title} className="w-full h-full object-cover" />
+                        <img src={img.url} alt={img.title} loading="lazy" className="w-full h-full object-cover" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-4">
                           <span className="text-[8px] font-bold text-primary uppercase tracking-widest block mb-0.5">{img.tag}</span>
                           <h4 className="text-[10px] font-black text-white line-clamp-1 leading-tight">{img.title}</h4>

@@ -144,6 +144,7 @@ export const Hero = () => {
             <img
               src={carouselImages[activeSlide].url}
               alt="hero"
+              fetchPriority={activeSlide === 0 ? "high" : "auto"}
               className="w-full h-full object-cover"
             />
 
@@ -154,6 +155,15 @@ export const Hero = () => {
             <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/80" />
           </motion.div>
         </AnimatePresence>
+
+        {/* Preload next image in background with low priority */}
+        <img
+          src={carouselImages[(activeSlide + 1) % carouselImages.length].url}
+          alt=""
+          fetchPriority="low"
+          className="hidden"
+          aria-hidden="true"
+        />
       </div>
 
       {/* HERO CONTENT */}
