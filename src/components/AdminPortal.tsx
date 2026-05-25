@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Users, CreditCard, Award, Mail, Key, LogOut, CheckCircle, 
   Trash2, Plus, Edit2, Search, Filter, Shield, 
-  Calendar, Check, X, FileText, BarChart2, Lightbulb 
+  Calendar, Check, X, FileText, BarChart2, Lightbulb,
+  ChevronRight
 } from 'lucide-react';
 import { 
   getStudents, saveStudents, getTransactions, saveTransactions,
