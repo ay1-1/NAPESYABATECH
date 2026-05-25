@@ -37,13 +37,8 @@ export const Footer = () => {
   };
 
   return (
-    <footer className="bg-secondary text-white pt-24 pb-16 relative overflow-hidden" id="support">
-      {/* Top thin line gradient divider */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+    <footer className="bg-secondary text-white pt-24 pb-16 relative overflow-hidden border-t border-white/10" id="support">
       
-      {/* Background blurs */}
-      <div className="absolute bottom-0 right-0 w-[300px] h-[300px] bg-primary/5 blur-[80px] rounded-full pointer-events-none" />
-
       <div className="container mx-auto px-6 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 mb-16 items-start">
           {/* Column 1: Info & Brand */}
