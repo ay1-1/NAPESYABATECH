@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Eye, Share2, Calendar, ArrowRight } from 'lucide-react';
+import { Calendar, ArrowRight } from 'lucide-react';
 
 const publications = [
   {
@@ -68,13 +68,9 @@ export const LatestPublications = () => {
                   {news.tag}
                 </span>
 
-                <div className="absolute bottom-10 left-10 right-10 flex items-center justify-between text-white/80">
-                   <div className="flex items-center gap-4 text-[10px] font-bold tracking-widest uppercase">
-                    <span className="flex items-center gap-2"><Eye size={14} className="text-primary" /> {news.views}</span>
-                    <span className="flex items-center gap-2"><Share2 size={14} className="text-primary" /> {news.shares}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-[10px] uppercase font-bold tracking-widest">
-                    <Calendar size={14} className="text-primary" />
+                <div className="absolute bottom-10 right-10 flex text-white/80">
+                  <div className="flex items-center gap-2 text-[10px] uppercase font-bold tracking-widest bg-secondary/80 backdrop-blur-md px-4 py-2.5 rounded-full border border-white/5">
+                    <Calendar size={12} className="text-primary" />
                     {news.date}
                   </div>
                 </div>

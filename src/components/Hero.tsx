@@ -77,6 +77,14 @@ const carouselImages = [
 
 export const Hero = () => {
   const [activeSlide, setActiveSlide] = useState(0);
+  const [matric, setMatric] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleQuickLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!matric.trim()) return;
+    window.open(`/?view=portal&matric=${encodeURIComponent(matric.trim())}`, '_blank');
+  };
 
   const heroRef = useRef<HTMLDivElement>(null);
 
@@ -189,21 +197,27 @@ export const Hero = () => {
 
             {/* BUTTONS */}
             <div className="flex flex-col sm:flex-row items-center gap-6">
-              <button className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-bold px-12 py-5 rounded-2xl flex items-center justify-center gap-3 transition-all group shadow-2xl uppercase tracking-widest text-sm">
+              <a 
+                href="/?view=portal" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-bold px-12 py-5 rounded-2xl flex items-center justify-center gap-3 transition-all group shadow-2xl uppercase tracking-widest text-sm text-center"
+              >
                 Student Portal
 
                 <ArrowRight className="group-hover:translate-x-1 transition-transform" />
-              </button>
+              </a>
 
-              <button className="w-full sm:w-auto bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white px-12 py-5 rounded-2xl transition-all font-semibold text-sm uppercase tracking-widest">
+              <a href="#articles" className="w-full sm:w-auto bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white px-12 py-5 rounded-2xl transition-all font-semibold text-sm uppercase tracking-widest text-center">
                 Explore More
-              </button>
+              </a>
             </div>
           </div>
 
           {/* RIGHT LOGIN CARD */}
           <div className="lg:col-span-4 hidden lg:block">
-            <motion.div
+            <motion.form
+              onSubmit={handleQuickLogin}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.6 }}
@@ -234,7 +248,10 @@ export const Hero = () => {
 
                   <input
                     type="text"
+                    required
                     placeholder="F/HD/21/..."
+                    value={matric}
+                    onChange={(e) => setMatric(e.target.value)}
                     className="w-full px-8 py-5 rounded-2xl bg-slate-50 border border-slate-100 focus:outline-none focus:ring-4 focus:ring-red-200 transition-all text-sm font-medium"
                   />
                 </div>
@@ -246,26 +263,26 @@ export const Hero = () => {
 
                   <input
                     type="password"
+                    required
                     placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-8 py-5 rounded-2xl bg-slate-50 border border-slate-100 focus:outline-none focus:ring-4 focus:ring-red-200 transition-all text-sm font-medium"
                   />
                 </div>
               </div>
 
               {/* BUTTON */}
-              <button className="w-full bg-red-600 text-white font-bold py-6 rounded-2xl hover:bg-red-700 transition-all mb-6 text-sm tracking-widest uppercase shadow-xl">
+              <button type="submit" className="w-full bg-red-600 text-white font-bold py-6 rounded-2xl hover:bg-red-700 transition-all mb-6 text-sm tracking-widest uppercase shadow-xl cursor-pointer">
                 Enter Dashboard
               </button>
 
               <div className="text-center">
-                <a
-                  href="#"
-                  className="text-xs text-slate-400 hover:text-red-600 transition-colors font-medium"
-                >
-                  Forgot credentials?
-                </a>
+                <span className="text-xs text-slate-400 font-medium">
+                  Use matric number & password
+                </span>
               </div>
-            </motion.div>
+            </motion.form>
           </div>
         </div>
 

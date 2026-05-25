@@ -50,14 +50,19 @@ export const Navbar = () => {
         </div>
 
         <div className="flex items-center gap-6">
-          <button className={`hidden sm:flex items-center gap-3 px-8 py-3 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all ${
-            scrolled 
-              ? 'bg-secondary text-white hover:bg-primary shadow-lg shadow-secondary/10' 
-              : 'bg-white/10 text-white hover:bg-white border border-white/20 hover:text-secondary'
-          }`}>
+          <a 
+            href="/?view=portal" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className={`hidden sm:flex items-center gap-3 px-8 py-3 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all ${
+              scrolled 
+                ? 'bg-secondary text-white hover:bg-primary shadow-lg shadow-secondary/10' 
+                : 'bg-white/10 text-white hover:bg-white border border-white/20 hover:text-secondary'
+            }`}
+          >
             <User size={14} />
             Student Login
-          </button>
+          </a>
           
           <button 
             className={`lg:hidden p-3 rounded-xl transition-all ${scrolled ? 'bg-primary/5 text-primary' : 'bg-white/10 text-white'}`}
@@ -88,9 +93,15 @@ export const Navbar = () => {
                 </a>
               ))}
               <div className="h-px bg-slate-100" />
-              <button className="bg-primary text-white font-black py-6 rounded-3xl text-xl tracking-widest uppercase shadow-xl shadow-primary/20">
+              <a 
+                href="/?view=portal" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                onClick={() => setMobileOpen(false)}
+                className="bg-primary text-white font-black py-6 rounded-3xl text-[15px] tracking-widest uppercase shadow-xl shadow-primary/20 block text-center"
+              >
                 PORTAL ACCESS
-              </button>
+              </a>
             </div>
           </motion.div>
         )}
