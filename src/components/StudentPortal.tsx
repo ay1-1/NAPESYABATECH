@@ -4,11 +4,11 @@ import {
   User, CreditCard, Award, LogOut, CheckCircle, 
   MapPin, Phone, Mail, FileText, ChevronRight, 
   Lock, Printer, Download, Sparkles, Building, Loader2,
-  Menu, X
+  Menu, X, Search, FileDown
 } from 'lucide-react';
 import { 
   getStudents, saveStudents, getTransactions, 
-  saveTransactions, Student, Transaction 
+  saveTransactions, getPastQuestions, Student, Transaction, PastQuestion 
 } from '../lib/mockData';
 
 interface StudentPortalProps {
@@ -19,7 +19,7 @@ interface StudentPortalProps {
 export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialMatric }) => {
   const [students, setStudents] = useState<Student[]>([]);
   const [currentStudent, setCurrentStudent] = useState<Student | null>(null);
-  const [activeTab, setActiveTab] = useState<'profile' | 'biodata' | 'payments'>('biodata');
+  const [activeTab, setActiveTab] = useState<'profile' | 'biodata' | 'payments' | 'past-questions'>('biodata');
   
   // Mobile Menu state
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -38,6 +38,9 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
   const [level, setLevel] = useState<any>('HND2');
   const [profileSuccess, setProfileSuccess] = useState(false);
 
+  // Dues Selection State
+  const [paymentType, setPaymentType] = useState<'faculty' | 'department'>('faculty');
+
   // Payment Checkout State
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [cardNumber, setCardNumber] = useState('');
@@ -47,8 +50,15 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
   const [otpCode, setOtpCode] = useState('');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   
-  // Print Certificate State
+  // Printable Certificates State
   const [certificateOpen, setCertificateOpen] = useState(false);
+  const [certType, setCertType] = useState<'faculty' | 'department'>('faculty');
+
+  // Past Questions State
+  const [pastQuestions, setPastQuestions] = useState<PastQuestion[]>([]);
+  const [searchPqQuery, setSearchPqQuery] = useState('');
+  const [filterPqLevel, setFilterPqLevel] = useState('All');
+  const [filterPqDept, setFilterPqDept] = useState('All');
 
   useEffect(() => {
     const loadedStudents = getStudents();
@@ -71,6 +81,11 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
       const allTx = getTransactions();
       const studentTx = allTx.filter(t => t.matricNumber === currentStudent.matricNumber);
       setTransactions(studentTx);
+      
+      // Initialize past questions
+      setPastQuestions(getPastQuestions());
+      setFilterPqDept(currentStudent.department);
+      setFilterPqLevel(currentStudent.level);
     }
   }, [currentStudent]);
 
@@ -134,7 +149,8 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
     setTimeout(() => setProfileSuccess(false), 3000);
   };
 
-  const startCheckout = () => {
+  const startCheckout = (type: 'faculty' | 'department') => {
+    setPaymentType(type);
     setPaymentStep('details');
     setCardNumber('');
     setCardExpiry('');
@@ -155,25 +171,40 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
     setTimeout(() => {
       if (!currentStudent) return;
 
+      const isFaculty = paymentType === 'faculty';
+      const amt = isFaculty ? 5000 : 3000;
+      const purposeText = isFaculty ? "Faculty Dues" : "Departmental Dues";
+
       // Update student payment status
       const updatedStudents = students.map(s => {
         if (s.matricNumber === currentStudent.matricNumber) {
-          return { ...s, isPaid: true };
+          const nextFaculty = isFaculty ? true : s.isFacultyPaid;
+          const nextDept = !isFaculty ? true : s.isDeptPaid;
+          return { 
+            ...s, 
+            isFacultyPaid: nextFaculty,
+            isDeptPaid: nextDept,
+            isPaid: nextFaculty && nextDept
+          };
         }
         return s;
       });
 
       setStudents(updatedStudents);
       saveStudents(updatedStudents);
-      setCurrentStudent(prev => prev ? { ...prev, isPaid: true } : null);
+      
+      const selfUpdated = updatedStudents.find(s => s.matricNumber === currentStudent.matricNumber);
+      if (selfUpdated) {
+        setCurrentStudent(selfUpdated);
+      }
 
       // Save Transaction
       const newTx: Transaction = {
         id: `tx-${Date.now()}`,
         matricNumber: currentStudent.matricNumber,
         studentName: currentStudent.fullName,
-        amount: 5000,
-        purpose: "NAPES Annual Dues",
+        amount: amt,
+        purpose: purposeText,
         reference: `NP-${Math.floor(100000 + Math.random() * 900000)}`,
         date: new Date().toISOString(),
         status: "success"
@@ -187,9 +218,23 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
     }, 2000);
   };
 
+  const openCertificate = (type: 'faculty' | 'department') => {
+    setCertType(type);
+    setCertificateOpen(true);
+  };
+
   const handlePrint = () => {
     window.print();
   };
+
+  // Past Questions Filters
+  const filteredPastQuestions = pastQuestions.filter(pq => {
+    const matchesSearch = pq.title.toLowerCase().includes(searchPqQuery.toLowerCase()) || 
+                          pq.courseCode.toLowerCase().includes(searchPqQuery.toLowerCase());
+    const matchesLevel = filterPqLevel === 'All' || pq.level === filterPqLevel || pq.level === 'All';
+    const matchesDept = filterPqDept === 'All' || pq.department === filterPqDept || pq.department === 'General';
+    return matchesSearch && matchesLevel && matchesDept;
+  });
 
   // Login view if not logged in
   if (!currentStudent) {
@@ -222,7 +267,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
                   placeholder="e.g. F/HD/21/3210001"
                   value={matricNumber}
                   onChange={(e) => setMatricNumber(e.target.value)}
-                  className="w-full px-6 py-4.5 rounded-2xl bg-slate-950 border border-slate-800 text-white placeholder-slate-650 focus:outline-none focus:ring-4 focus:ring-red-600/10 transition-all text-sm font-medium"
+                  className="w-full px-6 py-4.5 rounded-2xl bg-slate-950 border border-slate-800 text-white placeholder-slate-655 focus:outline-none focus:ring-4 focus:ring-red-600/10 transition-all text-sm font-medium"
                 />
               </div>
 
@@ -336,7 +381,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
             </div>
             <div className="overflow-hidden">
               <h4 className="font-bold text-xs truncate text-white leading-tight">{currentStudent.fullName}</h4>
-              <span className="text-[9px] text-slate-450 block truncate mt-0.5">{currentStudent.matricNumber}</span>
+              <span className="text-[9px] text-slate-455 block truncate mt-0.5">{currentStudent.matricNumber}</span>
             </div>
           </div>
 
@@ -345,6 +390,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
             {[
               { id: 'biodata', label: 'Department Biodata', icon: Award },
               { id: 'payments', label: 'Fees & Payments', icon: CreditCard },
+              { id: 'past-questions', label: 'Past Questions', icon: FileText },
               { id: 'profile', label: 'Edit Profile', icon: User },
             ].map((tab) => {
               const Icon = tab.icon;
@@ -388,7 +434,8 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
             <span className="text-[9px] font-black uppercase text-primary tracking-[0.2em] block mb-1">Student Dashboard</span>
             <h1 className="text-2xl sm:text-3xl font-display font-black text-secondary tracking-tight">
               {activeTab === 'biodata' && 'Departmental Biodata'}
-              {activeTab === 'payments' && 'Fees & Clearance'}
+              {activeTab === 'payments' && 'Dues & Financial Clearances'}
+              {activeTab === 'past-questions' && 'Past Examination Papers'}
               {activeTab === 'profile' && 'Manage Profile Settings'}
             </h1>
           </div>
@@ -437,11 +484,11 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
                       <div className="text-right">
                         <span className="text-[6px] text-slate-400 uppercase tracking-widest block leading-none">Clearance Card</span>
                         <span className={`text-[7px] font-black uppercase px-2 py-0.5 rounded-full border mt-1.5 inline-block ${
-                          currentStudent.isPaid 
+                          (currentStudent.isFacultyPaid && currentStudent.isDeptPaid) 
                             ? 'bg-green-500/10 border-green-500/25 text-green-400' 
                             : 'bg-orange-500/10 border-orange-500/25 text-orange-400'
                         }`}>
-                          {currentStudent.isPaid ? 'Cleared' : 'Pending'}
+                          {(currentStudent.isFacultyPaid && currentStudent.isDeptPaid) ? 'Fully Cleared' : 'Pending Dues'}
                         </span>
                       </div>
                     </div>
@@ -511,7 +558,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
             </motion.div>
           )}
 
-          {/* TAB 2: FEES & CLEARANCE */}
+          {/* TAB 2: FEES & CLEARANCE (Double dues card structure, no annual dues header card block) */}
           {activeTab === 'payments' && (
             <motion.div
               key="payments"
@@ -520,47 +567,85 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
               exit={{ opacity: 0, y: -15 }}
               className="space-y-6"
             >
-              {/* Clearance Status Card */}
-              <div className={`p-6 sm:p-8 rounded-3xl border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 ${
-                currentStudent.isPaid 
-                  ? 'bg-green-50/50 border-green-200 text-green-900' 
-                  : 'bg-orange-50/50 border-orange-200 text-orange-950'
-              }`}>
-                <div className="space-y-2">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                    currentStudent.isPaid ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'
-                  }`}>
-                    <CreditCard size={20} />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-display font-black tracking-tight">
-                      Annual Chapter Dues: {currentStudent.isPaid ? 'Cleared & Active' : 'Outstanding Payment'}
-                    </h3>
-                    <p className="text-[11px] opacity-90 mt-1 leading-relaxed max-w-md">
-                      {currentStudent.isPaid 
-                        ? 'Your dues payment is cleared. You can now download and print your official receipt and dues clearance certificate.'
-                        : 'Outstanding balance of ₦5,000 required. Pay dues to unlock clearance certificates and vote in engineering elections.'}
+              {/* Double Dues Cards Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* DUES CARD 1: FACULTY DUES */}
+                <div className={`p-6 sm:p-8 rounded-3xl border flex flex-col justify-between gap-6 ${
+                  currentStudent.isFacultyPaid 
+                    ? 'bg-green-50/50 border-green-200 text-green-900' 
+                    : 'bg-slate-50 border-slate-200 text-secondary'
+                }`}>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-start">
+                      <span className="text-[8px] uppercase tracking-widest font-black text-slate-400">Institutional Dues</span>
+                      <span className={`px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-wider ${
+                        currentStudent.isFacultyPaid ? 'bg-green-100 border-green-300 text-green-600' : 'bg-orange-105 border-orange-200 text-orange-600'
+                      }`}>
+                        {currentStudent.isFacultyPaid ? 'Cleared' : 'Pending'}
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-display font-black tracking-tight">Faculty of Engineering Dues</h3>
+                    <p className="text-[11px] opacity-80 leading-relaxed font-light">
+                      Annual dues for the general administration of the National Association of Polytechnic Engineering Students (NAPES) at faculty level.
                     </p>
+                    <div className="text-xl font-display font-black text-secondary pt-2">₦5,000.00</div>
                   </div>
+
+                  {!currentStudent.isFacultyPaid ? (
+                    <button
+                      onClick={() => startCheckout('faculty')}
+                      className="w-full bg-primary hover:bg-primary/95 text-white font-bold py-3.5 rounded-xl transition-all text-[10px] tracking-wider uppercase shadow-md flex items-center justify-center gap-2"
+                    >
+                      <CreditCard size={12} /> Pay Faculty Dues
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => openCertificate('faculty')}
+                      className="w-full bg-secondary hover:bg-secondary/95 text-white font-bold py-3.5 rounded-xl transition-all text-[10px] tracking-wider uppercase flex items-center justify-center gap-2"
+                    >
+                      <Download size={12} /> Faculty Clearance Certificate
+                    </button>
+                  )}
                 </div>
 
-                {!currentStudent.isPaid ? (
-                  <button
-                    onClick={startCheckout}
-                    className="bg-primary hover:bg-primary/95 text-white font-bold px-6 py-3.5 rounded-xl transition-all text-[10px] tracking-wider uppercase self-start sm:self-center shrink-0"
-                  >
-                    Pay Dues (₦5,000)
-                  </button>
-                ) : (
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => setCertificateOpen(true)}
-                      className="bg-secondary hover:bg-secondary/95 text-white font-bold px-5 py-3 rounded-xl transition-all text-[10px] tracking-wider uppercase flex items-center gap-2"
-                    >
-                      <Download size={12} /> Download Certificate
-                    </button>
+                {/* DUES CARD 2: DEPARTMENTAL DUES */}
+                <div className={`p-6 sm:p-8 rounded-3xl border flex flex-col justify-between gap-6 ${
+                  currentStudent.isDeptPaid 
+                    ? 'bg-green-50/50 border-green-200 text-green-900' 
+                    : 'bg-slate-50 border-slate-200 text-secondary'
+                }`}>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-start">
+                      <span className="text-[8px] uppercase tracking-widest font-black text-slate-400">Department Dues</span>
+                      <span className={`px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-wider ${
+                        currentStudent.isDeptPaid ? 'bg-green-100 border-green-300 text-green-600' : 'bg-orange-105 border-orange-200 text-orange-600'
+                      }`}>
+                        {currentStudent.isDeptPaid ? 'Cleared' : 'Pending'}
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-display font-black tracking-tight">{currentStudent.department} Engineering Dues</h3>
+                    <p className="text-[11px] opacity-80 leading-relaxed font-light">
+                      Specialized dues collected by the departmental executive body to fund local workshops, projects, and lab maintenance.
+                    </p>
+                    <div className="text-xl font-display font-black text-secondary pt-2">₦3,000.00</div>
                   </div>
-                )}
+
+                  {!currentStudent.isDeptPaid ? (
+                    <button
+                      onClick={() => startCheckout('department')}
+                      className="w-full bg-primary hover:bg-primary/95 text-white font-bold py-3.5 rounded-xl transition-all text-[10px] tracking-wider uppercase shadow-md flex items-center justify-center gap-2"
+                    >
+                      <CreditCard size={12} /> Pay Department Dues
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => openCertificate('department')}
+                      className="w-full bg-secondary hover:bg-secondary/95 text-white font-bold py-3.5 rounded-xl transition-all text-[10px] tracking-wider uppercase flex items-center justify-center gap-2"
+                    >
+                      <Download size={12} /> Department Clearance Certificate
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Transactions List */}
@@ -606,7 +691,111 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
             </motion.div>
           )}
 
-          {/* TAB 3: EDIT PROFILE */}
+          {/* TAB 3: PAST QUESTIONS */}
+          {activeTab === 'past-questions' && (
+            <motion.div
+              key="past-questions"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              className="space-y-6"
+            >
+              {/* Past Questions Filter & Search Controls */}
+              <div className="premium-card p-6 bg-white space-y-4">
+                <div className="flex flex-col md:flex-row gap-4 items-stretch justify-between">
+                  {/* Search */}
+                  <div className="flex-1 relative">
+                    <input
+                      type="text"
+                      placeholder="Search past questions by course title or code..."
+                      value={searchPqQuery}
+                      onChange={(e) => setSearchPqQuery(e.target.value)}
+                      className="w-full px-10 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-4 focus:ring-primary/5 text-xs font-semibold"
+                    />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                  </div>
+
+                  {/* Dropdown Filters */}
+                  <div className="flex gap-2">
+                    <select
+                      value={filterPqDept}
+                      onChange={(e) => setFilterPqDept(e.target.value)}
+                      className="px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-500 appearance-none pr-8 bg-no-repeat"
+                      style={{
+                        backgroundImage: `url("data:image/svg+xml;utf8,<svg fill='%2364748b' height='18' viewBox='0 0 24 24' width='18' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>")`,
+                        backgroundPosition: 'right 8px center'
+                      }}
+                    >
+                      <option value="All">All Departments</option>
+                      <option value="Civil">Civil Engr</option>
+                      <option value="Mechanical">Mechanical Engr</option>
+                      <option value="Electrical">Electrical Engr</option>
+                      <option value="Computer">Computer Engr</option>
+                      <option value="Chemical">Chemical Engr</option>
+                      <option value="Industrial">Industrial Engr</option>
+                    </select>
+
+                    <select
+                      value={filterPqLevel}
+                      onChange={(e) => setFilterPqLevel(e.target.value)}
+                      className="px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-500 appearance-none pr-8 bg-no-repeat"
+                      style={{
+                        backgroundImage: `url("data:image/svg+xml;utf8,<svg fill='%2364748b' height='18' viewBox='0 0 24 24' width='18' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>")`,
+                        backgroundPosition: 'right 8px center'
+                      }}
+                    >
+                      <option value="All">All Levels</option>
+                      <option value="ND1">ND1</option>
+                      <option value="ND2">ND2</option>
+                      <option value="HND1">HND1</option>
+                      <option value="HND2">HND2</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Past Questions Listing Grid */}
+              {filteredPastQuestions.length === 0 ? (
+                <div className="text-center py-12 premium-card bg-white">
+                  <FileText size={36} className="text-slate-300 mx-auto mb-3" />
+                  <p className="text-slate-400 text-xs font-light">No past questions cataloged matching search parameters</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {filteredPastQuestions.map((pq) => (
+                    <div key={pq.id} className="premium-card p-5 bg-white flex justify-between items-center gap-4">
+                      <div className="space-y-1.5 overflow-hidden">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded-full bg-red-50 border border-red-100 text-primary text-[8px] font-black uppercase">
+                            {pq.courseCode}
+                          </span>
+                          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">
+                            {pq.level}
+                          </span>
+                        </div>
+                        <h4 className="font-bold text-xs text-secondary truncate" title={pq.title}>{pq.title}</h4>
+                        <span className="text-[8px] font-bold text-slate-400 block tracking-wider uppercase">
+                          {pq.department} Engr.
+                        </span>
+                      </div>
+
+                      <a
+                        href={pq.fileUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-3 bg-slate-50 hover:bg-primary/5 border border-slate-200 hover:border-primary/20 text-slate-500 hover:text-primary transition-all rounded-xl shrink-0 flex items-center justify-center"
+                        title="Download PDF past questions"
+                      >
+                        <FileDown size={16} />
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* TAB 4: EDIT PROFILE */}
           {activeTab === 'profile' && (
             <motion.div
               key="profile"
@@ -700,7 +889,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
                     <select
                       value={level}
                       onChange={(e) => setLevel(e.target.value as any)}
-                      className="w-full px-5 py-3.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all text-xs font-semibold text-slate-650 appearance-none bg-no-repeat"
+                      className="w-full px-5 py-3.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all text-xs font-semibold text-slate-655 appearance-none bg-no-repeat"
                       style={{
                         backgroundImage: `url("data:image/svg+xml;utf8,<svg fill='%2364748b' height='18' viewBox='0 0 24 24' width='18' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>")`,
                         backgroundPosition: 'right 16px center'
@@ -728,13 +917,15 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
         </AnimatePresence>
       </main>
 
-      {/* POP-UP: PRINTABLE CLEARANCE CERTIFICATE OVERLAY */}
+      {/* POP-UP: PRINTABLE CLEARANCE CERTIFICATE OVERLAY (Faculty or Department) */}
       {certificateOpen && currentStudent && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-2xl w-full shadow-2xl space-y-6 print:p-0 print:shadow-none print:my-0">
             {/* Action buttons (hidden on print) */}
             <div className="flex justify-between items-center print:hidden border-b border-slate-100 pb-4">
-              <h3 className="font-display font-black text-secondary text-base">Clearance Certificate Preview</h3>
+              <h3 className="font-display font-black text-secondary text-base">
+                {certType === 'faculty' ? 'Faculty Clearance' : 'Departmental Clearance'} Certificate Preview
+              </h3>
               <div className="flex gap-2">
                 <button
                   onClick={handlePrint}
@@ -744,7 +935,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
                 </button>
                 <button
                   onClick={() => setCertificateOpen(false)}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-650 font-bold px-4 py-2 rounded-xl text-[10px] tracking-wider uppercase"
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-655 font-bold px-4 py-2 rounded-xl text-[10px] tracking-wider uppercase"
                 >
                   Close
                 </button>
@@ -759,17 +950,25 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
                 <div className="w-14 h-14 mx-auto">
                   <img src="/napeslogo.jpg" alt="Logo" className="w-full h-full object-contain" />
                 </div>
-                <h2 className="font-display font-black text-xl text-secondary tracking-tight uppercase">National Association of Polytechnic Engineering Students</h2>
-                <h4 className="text-[9px] tracking-[0.3em] font-black uppercase text-primary">Yaba College of Technology Chapter</h4>
+                <h2 className="font-display font-black text-xl text-secondary tracking-tight uppercase">
+                  {certType === 'faculty' 
+                    ? 'Faculty of Engineering' 
+                    : `${currentStudent.department} Engineering Students Association`}
+                </h2>
+                <h4 className="text-[9px] tracking-[0.3em] font-black uppercase text-primary">Yaba College of Technology</h4>
                 <div className="h-0.5 bg-slate-200 w-2/3 mx-auto" />
               </div>
 
               {/* Certificate Content */}
               <div className="space-y-3 my-4">
-                <span className="text-[8px] uppercase tracking-widest text-slate-400 font-bold">Official Chapter Clearance</span>
-                <h1 className="text-lg font-display font-black text-secondary tracking-tight">ANNUAL DUES CLEARANCE CERTIFICATE</h1>
+                <span className="text-[8px] uppercase tracking-widest text-slate-400 font-bold">
+                  {certType === 'faculty' ? 'Faculty Level Clearance' : 'Departmental Level Clearance'}
+                </span>
+                <h1 className="text-lg font-display font-black text-secondary tracking-tight uppercase">
+                  {certType === 'faculty' ? 'Faculty Dues Clearance Certificate' : 'Departmental Dues Clearance Certificate'}
+                </h1>
                 <p className="text-slate-500 text-xs max-w-md mx-auto leading-relaxed font-light">
-                  This is to officially certify that <strong className="text-secondary font-black">{currentStudent.fullName}</strong> with Matric Number <strong className="text-secondary font-bold">{currentStudent.matricNumber}</strong> in the Department of <strong className="text-secondary font-bold">{currentStudent.department} Engineering</strong> ({currentStudent.level}) has cleared all outstanding NAPES chapter dues of <strong className="text-primary font-bold">₦5,000</strong> for the <strong className="text-secondary font-bold">2025/2026</strong> academic session.
+                  This is to officially certify that <strong className="text-secondary font-black">{currentStudent.fullName}</strong> with Matric Number <strong className="text-secondary font-bold">{currentStudent.matricNumber}</strong> in the Department of <strong className="text-secondary font-bold">{currentStudent.department} Engineering</strong> ({currentStudent.level}) has cleared all outstanding departmental/faculty dues of <strong className="text-primary font-bold">₦{certType === 'faculty' ? '5,000' : '3,000'}</strong> for the <strong className="text-secondary font-bold">2025/2026</strong> academic session.
                 </p>
               </div>
 
@@ -777,7 +976,9 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
               <div className="flex justify-between items-end border-t border-slate-100 pt-5 mt-3">
                 <div className="text-left space-y-1">
                   <span className="text-[6px] text-slate-400 uppercase tracking-widest block">Reference ID</span>
-                  <span className="text-[8px] font-bold text-slate-800 uppercase tracking-wider">{transactions[0]?.reference || 'NP-CLEARANCE'}</span>
+                  <span className="text-[8px] font-bold text-slate-800 uppercase tracking-wider">
+                    {transactions.find(t => t.purpose.toLowerCase().includes(certType))?.reference || 'NP-CLEARANCE'}
+                  </span>
                 </div>
 
                 {/* Flat verifiable stamp */}
@@ -809,7 +1010,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
               </div>
               <button 
                 onClick={() => setCheckoutOpen(false)}
-                className="text-slate-450 hover:text-white text-xs font-bold"
+                className="text-slate-455 hover:text-white text-xs font-bold"
               >
                 Cancel
               </button>
@@ -827,13 +1028,15 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
                   className="space-y-4"
                 >
                   <div className="text-center mb-4">
-                    <span className="text-[8px] uppercase tracking-widest text-slate-450">Paying dues to</span>
+                    <span className="text-[8px] uppercase tracking-widest text-slate-450">Paying {paymentType} dues to</span>
                     <h3 className="font-display font-black text-base text-white">NAPES Yabatech Council</h3>
-                    <div className="text-xl font-black text-emerald-400 mt-1">₦5,000.00</div>
+                    <div className="text-xl font-black text-emerald-400 mt-1">
+                      ₦{paymentType === 'faculty' ? '5,000.00' : '3,000.00'}
+                    </div>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[8px] uppercase tracking-wider font-bold text-slate-450 ml-1">Card Number</label>
+                    <label className="text-[8px] uppercase tracking-wider font-bold text-slate-455 ml-1">Card Number</label>
                     <input
                       type="text"
                       required
@@ -846,7 +1049,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="text-[8px] uppercase tracking-wider font-bold text-slate-450 ml-1">Expiry Date</label>
+                      <label className="text-[8px] uppercase tracking-wider font-bold text-slate-455 ml-1">Expiry Date</label>
                       <input
                         type="text"
                         required
@@ -857,7 +1060,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[8px] uppercase tracking-wider font-bold text-slate-450 ml-1">CVV</label>
+                      <label className="text-[8px] uppercase tracking-wider font-bold text-slate-455 ml-1">CVV</label>
                       <input
                         type="password"
                         required
@@ -911,7 +1114,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
                     type="submit"
                     className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-lg transition-all text-[10px] tracking-widest uppercase shadow-md mt-4"
                   >
-                    Authorize ₦5,000.00
+                    Authorize ₦{paymentType === 'faculty' ? '5,000.00' : '3,000.00'}
                   </button>
                 </motion.form>
               )}
@@ -946,7 +1149,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
                   <div className="space-y-1">
                     <h3 className="font-display font-black text-lg text-white">Payment Successful</h3>
                     <p className="text-[10px] text-slate-400 leading-relaxed font-light">
-                      Mock payment processed. Dues reference cleared. Clearance certificate is now unlocked!
+                      Mock payment processed. {paymentType === 'faculty' ? 'Faculty' : 'Departmental'} dues reference cleared. Clearance certificate is now unlocked!
                     </p>
                   </div>
 
@@ -957,7 +1160,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
                     }}
                     className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3.5 rounded-lg transition-all text-[10px] tracking-wider uppercase"
                   >
-                    Return to Portal
+                    Return to Payments
                   </button>
                 </motion.div>
               )}

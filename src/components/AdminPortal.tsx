@@ -4,13 +4,13 @@ import {
   Users, CreditCard, Award, Mail, Key, LogOut, CheckCircle, 
   Trash2, Plus, Edit2, Search, Filter, Shield, 
   Calendar, Check, X, FileText, BarChart2, Lightbulb,
-  ChevronRight, Menu
+  ChevronRight, Menu, BookOpen, Link2
 } from 'lucide-react';
 import { 
   getStudents, saveStudents, getTransactions, saveTransactions,
   getElections, saveElections, getTickets, saveTickets,
-  getElectionStatus, saveElectionStatus, Student, Transaction,
-  ElectionPost, Candidate, SupportTicket
+  getElectionStatus, saveElectionStatus, getPastQuestions, savePastQuestions,
+  Student, Transaction, ElectionPost, Candidate, SupportTicket, PastQuestion
 } from '../lib/mockData';
 
 interface AdminPortalProps {
@@ -32,14 +32,20 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
   const [elections, setElections] = useState<ElectionPost[]>([]);
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [isElectionActive, setIsElectionActive] = useState(true);
+  const [pastQuestions, setPastQuestions] = useState<PastQuestion[]>([]);
 
   // View state
-  const [activeTab, setActiveTab] = useState<'students' | 'payments' | 'elections' | 'ideas'>('students');
+  const [activeTab, setActiveTab] = useState<'students' | 'payments' | 'elections' | 'past-questions' | 'ideas'>('students');
 
-  // Search & Filter State
+  // Search & Filter State (Student Directory)
   const [searchQuery, setSearchQuery] = useState('');
   const [deptFilter, setDeptFilter] = useState('All');
   const [paymentFilter, setPaymentFilter] = useState('All');
+
+  // Search & Filter State (Past Questions)
+  const [searchPqQuery, setSearchPqQuery] = useState('');
+  const [pqDeptFilter, setPqDeptFilter] = useState('All');
+  const [pqLevelFilter, setPqLevelFilter] = useState('All');
 
   // Add/Edit Student Modal State
   const [studentModalOpen, setStudentModalOpen] = useState(false);
@@ -53,7 +59,16 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
   const [phone, setPhone] = useState('');
   const [department, setDepartment] = useState<'Civil' | 'Mechanical' | 'Electrical' | 'Computer' | 'Chemical' | 'Industrial'>('Computer');
   const [level, setLevel] = useState<'ND1' | 'ND2' | 'HND1' | 'HND2'>('HND2');
-  const [isPaid, setIsPaid] = useState(false);
+  const [isFacultyPaid, setIsFacultyPaid] = useState(false);
+  const [isDeptPaid, setIsDeptPaid] = useState(false);
+
+  // Past Question Form Fields
+  const [pqTitle, setPqTitle] = useState('');
+  const [pqCourseCode, setPqCourseCode] = useState('');
+  const [pqDept, setPqDept] = useState<'Civil' | 'Mechanical' | 'Electrical' | 'Computer' | 'Chemical' | 'Industrial' | 'General'>('Computer');
+  const [pqLevel, setPqLevel] = useState<'ND1' | 'ND2' | 'HND1' | 'HND2' | 'All'>('ND1');
+  const [pqFileUrl, setPqFileUrl] = useState('https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf');
+  const [pqFormSuccess, setPqFormSuccess] = useState(false);
 
   // Election Setup States
   const [newPostTitle, setNewPostTitle] = useState('');
@@ -69,6 +84,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
       setElections(getElections());
       setTickets(getTickets());
       setIsElectionActive(getElectionStatus());
+      setPastQuestions(getPastQuestions());
     }
   }, [isAdminLoggedIn]);
 
@@ -91,7 +107,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
     setPhone('');
     setDepartment('Computer');
     setLevel('HND2');
-    setIsPaid(false);
+    setIsFacultyPaid(false);
+    setIsDeptPaid(false);
     setStudentModalOpen(true);
   };
 
@@ -104,7 +121,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
     setPhone(student.phone);
     setDepartment(student.department);
     setLevel(student.level);
-    setIsPaid(student.isPaid);
+    setIsFacultyPaid(student.isFacultyPaid || false);
+    setIsDeptPaid(student.isDeptPaid || false);
     setStudentModalOpen(true);
   };
 
@@ -126,7 +144,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
         department,
         level,
         session: "2025/2026",
-        isPaid,
+        isPaid: isFacultyPaid && isDeptPaid,
+        isFacultyPaid,
+        isDeptPaid,
         password: 'password'
       };
       updated = [...students, newStudent];
@@ -140,7 +160,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
             phone,
             department,
             level,
-            isPaid
+            isFacultyPaid,
+            isDeptPaid,
+            isPaid: isFacultyPaid && isDeptPaid
           };
         }
         return s;
@@ -160,19 +182,23 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
     }
   };
 
-  const togglePayment = (student: Student) => {
+  const toggleDuesPayment = (student: Student, duesType: 'faculty' | 'department') => {
     const updated = students.map(s => {
       if (s.matricNumber === student.matricNumber) {
-        const nextPaid = !s.isPaid;
-        
+        const isFaculty = duesType === 'faculty';
+        const currentStatus = isFaculty ? s.isFacultyPaid : s.isDeptPaid;
+        const nextStatus = !currentStatus;
+
         // Log transaction if manually setting to paid
-        if (nextPaid) {
+        if (nextStatus) {
+          const amt = isFaculty ? 5000 : 3000;
+          const purpose = isFaculty ? "Faculty Dues (Admin Manual)" : "Departmental Dues (Admin Manual)";
           const newTx: Transaction = {
             id: `tx-${Date.now()}`,
             matricNumber: s.matricNumber,
             studentName: s.fullName,
-            amount: 5000,
-            purpose: "NAPES Annual Dues (Admin Manual)",
+            amount: amt,
+            purpose: purpose,
             reference: `NP-ADM-${Math.floor(100000 + Math.random() * 900000)}`,
             date: new Date().toISOString(),
             status: "success"
@@ -182,12 +208,55 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
           saveTransactions(allTx);
         }
 
-        return { ...s, isPaid: nextPaid };
+        const nextFaculty = isFaculty ? nextStatus : s.isFacultyPaid;
+        const nextDept = !isFaculty ? nextStatus : s.isDeptPaid;
+
+        return { 
+          ...s, 
+          isFacultyPaid: nextFaculty, 
+          isDeptPaid: nextDept,
+          isPaid: nextFaculty && nextDept
+        };
       }
       return s;
     });
     setStudents(updated);
     saveStudents(updated);
+  };
+
+  // Past Questions Actions
+  const handleAddPastQuestion = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pqTitle.trim() || !pqCourseCode.trim()) return;
+
+    const newPq: PastQuestion = {
+      id: `pq-${Date.now()}`,
+      title: pqTitle.trim(),
+      courseCode: pqCourseCode.trim().toUpperCase(),
+      department: pqDept,
+      level: pqLevel,
+      fileUrl: pqFileUrl.trim(),
+      createdAt: new Date().toISOString()
+    };
+
+    const updated = [newPq, ...pastQuestions];
+    setPastQuestions(updated);
+    savePastQuestions(updated);
+
+    // Clear form
+    setPqTitle('');
+    setPqCourseCode('');
+    setPqFileUrl('https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf');
+    setPqFormSuccess(true);
+    setTimeout(() => setPqFormSuccess(false), 3000);
+  };
+
+  const handleDeletePastQuestion = (id: string) => {
+    if (confirm('Are you sure you want to delete this past question record?')) {
+      const updated = pastQuestions.filter(pq => pq.id !== id);
+      setPastQuestions(updated);
+      savePastQuestions(updated);
+    }
   };
 
   // Election Actions
@@ -287,18 +356,29 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                           s.matricNumber.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesDept = deptFilter === 'All' || s.department === deptFilter;
     const matchesPay = paymentFilter === 'All' || 
-                       (paymentFilter === 'Cleared' && s.isPaid) || 
-                       (paymentFilter === 'Pending' && !s.isPaid);
+                       (paymentFilter === 'FacultyCleared' && s.isFacultyPaid) || 
+                       (paymentFilter === 'FacultyPending' && !s.isFacultyPaid) || 
+                       (paymentFilter === 'DeptCleared' && s.isDeptPaid) || 
+                       (paymentFilter === 'DeptPending' && !s.isDeptPaid);
     
     return matchesSearch && matchesDept && matchesPay;
+  });
+
+  // Past Questions filtering
+  const filteredPastQuestions = pastQuestions.filter(pq => {
+    const matchesSearch = pq.title.toLowerCase().includes(searchPqQuery.toLowerCase()) || 
+                          pq.courseCode.toLowerCase().includes(searchPqQuery.toLowerCase());
+    const matchesDept = pqDeptFilter === 'All' || pq.department === pqDeptFilter;
+    const matchesLevel = pqLevelFilter === 'All' || pq.level === pqLevelFilter;
+    return matchesSearch && matchesDept && matchesLevel;
   });
 
   // Analytics Metrics
   const totalRevenue = transactions
     .filter(t => t.status === 'success')
     .reduce((sum, t) => sum + t.amount, 0);
-  const clearedCount = students.filter(s => s.isPaid).length;
-  const pendingCount = students.filter(s => !s.isPaid).length;
+  const facultyClearedCount = students.filter(s => s.isFacultyPaid).length;
+  const deptClearedCount = students.filter(s => s.isDeptPaid).length;
 
   if (!isAdminLoggedIn) {
     return (
@@ -352,7 +432,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
 
               <button
                 type="submit"
-                className="w-full bg-red-650 hover:bg-red-700 text-white font-bold py-5 rounded-2xl transition-all text-xs tracking-widest uppercase shadow-xl flex items-center justify-center gap-3 cursor-pointer"
+                className="w-full bg-red-655 hover:bg-red-700 text-white font-bold py-5 rounded-2xl transition-all text-xs tracking-widest uppercase shadow-xl flex items-center justify-center gap-3 cursor-pointer"
               >
                 Unlock Dashboard <ChevronRight size={14} />
               </button>
@@ -402,7 +482,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
         )}
       </AnimatePresence>
 
-      {/* Sidebar (Solid black/gray theme, responsive drawer on mobile) */}
+      {/* Sidebar */}
       <aside className={`
         fixed top-0 bottom-0 left-0 w-80 bg-slate-900 text-white z-50 p-8 flex flex-col justify-between
         transition-transform duration-300 transform md:translate-x-0 md:static md:h-screen md:w-80 shrink-0
@@ -455,6 +535,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
             {[
               { id: 'students', label: 'Student Directory', icon: Users },
               { id: 'payments', label: 'Payments Auditor', icon: CreditCard },
+              { id: 'past-questions', label: 'Past Questions Setup', icon: BookOpen },
               { id: 'elections', label: 'Election & Voting', icon: Award },
               { id: 'ideas', label: 'Napes Ideas Box', icon: Lightbulb },
             ].map((tab) => {
@@ -468,7 +549,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                   }}
                   className={`w-full px-5 py-4 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-4.5 ${
                     activeTab === tab.id
-                      ? 'bg-red-650 text-white shadow-md'
+                      ? 'bg-red-655 text-white shadow-md'
                       : 'text-slate-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
@@ -497,6 +578,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
           <h1 className="text-2xl sm:text-3xl font-display font-black text-secondary tracking-tight">
             {activeTab === 'students' && 'Students Management'}
             {activeTab === 'payments' && 'Financial Ledger Auditor'}
+            {activeTab === 'past-questions' && 'Past Questions Setup'}
             {activeTab === 'elections' && 'Election Ballot Settings'}
             {activeTab === 'ideas' && 'Napes Student Ideas Box'}
           </h1>
@@ -516,16 +598,16 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
               {/* Header metrics cards */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-                  <span className="text-[8px] font-bold uppercase tracking-wider text-slate-450 block">Total Cataloged</span>
+                  <span className="text-[8px] font-bold uppercase tracking-wider text-slate-455 block">Total Students</span>
                   <div className="text-2xl font-display font-black text-secondary mt-0.5">{students.length}</div>
                 </div>
                 <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-                  <span className="text-[8px] font-bold uppercase tracking-wider text-slate-450 block">Dues Paid</span>
-                  <div className="text-2xl font-display font-black text-green-600 mt-0.5">{clearedCount}</div>
+                  <span className="text-[8px] font-bold uppercase tracking-wider text-slate-455 block">Faculty Dues Paid</span>
+                  <div className="text-2xl font-display font-black text-green-600 mt-0.5">{facultyClearedCount}</div>
                 </div>
                 <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-                  <span className="text-[8px] font-bold uppercase tracking-wider text-slate-455 block">Dues Pending</span>
-                  <div className="text-2xl font-display font-black text-orange-600 mt-0.5">{pendingCount}</div>
+                  <span className="text-[8px] font-bold uppercase tracking-wider text-slate-455 block">Department Dues Paid</span>
+                  <div className="text-2xl font-display font-black text-green-600 mt-0.5">{deptClearedCount}</div>
                 </div>
               </div>
 
@@ -576,15 +658,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                           backgroundPosition: 'right 10px center'
                         }}
                       >
-                        <option value="All">All Clearances</option>
-                        <option value="Cleared">Cleared Only</option>
-                        <option value="Pending">Clearance Pending</option>
+                        <option value="All">All Clearance Types</option>
+                        <option value="FacultyCleared">Faculty Dues Paid</option>
+                        <option value="FacultyPending">Faculty Dues Pending</option>
+                        <option value="DeptCleared">Dept Dues Paid</option>
+                        <option value="DeptPending">Dept Dues Pending</option>
                       </select>
                     </div>
 
                     <button
                       onClick={openAddStudent}
-                      className="bg-red-650 hover:bg-red-700 text-white font-bold px-5 rounded-xl text-xs tracking-wider uppercase flex items-center justify-center gap-1.5 shadow-sm shrink-0"
+                      className="bg-red-655 hover:bg-red-700 text-white font-bold px-5 rounded-xl text-xs tracking-wider uppercase flex items-center justify-center gap-1.5 shadow-sm shrink-0"
                     >
                       <Plus size={14} /> Add Student
                     </button>
@@ -594,19 +678,20 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                 {/* Directory Table (Responsive scrollable table) */}
                 {filteredStudents.length === 0 ? (
                   <div className="text-center py-10">
-                    <Users size={32} className="text-slate-300 mx-auto mb-3" />
+                    <Users size={32} className="text-slate-350 mx-auto mb-3" />
                     <p className="text-slate-400 text-xs font-light">No students matches query parameters</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-[700px]">
+                    <table className="w-full text-left border-collapse min-w-[800px]">
                       <thead>
                         <tr className="border-b border-slate-100 pb-3">
                           <th className="text-[9px] font-bold uppercase text-slate-450 pb-3">Student Info</th>
                           <th className="text-[9px] font-bold uppercase text-slate-455 pb-3">Matric No</th>
                           <th className="text-[9px] font-bold uppercase text-slate-455 pb-3">Department</th>
                           <th className="text-[9px] font-bold uppercase text-slate-455 pb-3">Level</th>
-                          <th className="text-[9px] font-bold uppercase text-slate-455 pb-3">Cleared</th>
+                          <th className="text-[9px] font-bold uppercase text-slate-455 pb-3">Faculty Dues</th>
+                          <th className="text-[9px] font-bold uppercase text-slate-455 pb-3">Dept Dues</th>
                           <th className="text-[9px] font-bold uppercase text-slate-455 pb-3 text-right">Actions</th>
                         </tr>
                       </thead>
@@ -619,14 +704,26 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                             <td className="py-3.5 text-slate-500 text-xs">{st.level}</td>
                             <td className="py-3.5">
                               <button 
-                                onClick={() => togglePayment(st)}
-                                className={`px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wider ${
-                                  st.isPaid 
+                                onClick={() => toggleDuesPayment(st, 'faculty')}
+                                className={`px-2.5 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-wider ${
+                                  st.isFacultyPaid 
                                     ? 'bg-green-50 border-green-200 text-green-600' 
                                     : 'bg-orange-50 border-orange-200 text-orange-600'
                                 }`}
                               >
-                                {st.isPaid ? 'Approved' : 'Pending'}
+                                {st.isFacultyPaid ? 'Cleared' : 'Pending'}
+                              </button>
+                            </td>
+                            <td className="py-3.5">
+                              <button 
+                                onClick={() => toggleDuesPayment(st, 'department')}
+                                className={`px-2.5 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-wider ${
+                                  st.isDeptPaid 
+                                    ? 'bg-green-50 border-green-200 text-green-600' 
+                                    : 'bg-orange-50 border-orange-200 text-orange-600'
+                                }`}
+                              >
+                                {st.isDeptPaid ? 'Cleared' : 'Pending'}
                               </button>
                             </td>
                             <td className="py-3.5 text-right">
@@ -662,13 +759,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
-              className="premium-card p-6 sm:p-8 bg-white"
+              className="premium-card p-6 sm:p-10 bg-white"
             >
-              <h3 className="text-lg font-display font-black text-secondary tracking-tight mb-4">Annual Dues Audit Trail</h3>
+              <h3 className="text-lg font-display font-black text-secondary tracking-tight mb-6">Annual Dues Audit Trail</h3>
               
               {transactions.length === 0 ? (
                 <div className="text-center py-10">
-                  <CreditCard size={32} className="text-slate-300 mx-auto mb-3" />
+                  <CreditCard size={32} className="text-slate-350 mx-auto mb-3" />
                   <p className="text-slate-400 text-xs font-light">No ledger entries detected</p>
                 </div>
               ) : (
@@ -676,11 +773,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                   <table className="w-full text-left border-collapse min-w-[650px]">
                     <thead>
                       <tr className="border-b border-slate-100 pb-3">
-                        <th className="text-[9px] font-bold uppercase text-slate-450 pb-3">Reference ID</th>
+                        <th className="text-[9px] font-bold uppercase text-slate-400 pb-3">Reference ID</th>
                         <th className="text-[9px] font-bold uppercase text-slate-455 pb-3">Student Name</th>
                         <th className="text-[9px] font-bold uppercase text-slate-455 pb-3">Matric No</th>
                         <th className="text-[9px] font-bold uppercase text-slate-455 pb-3">Amount</th>
-                        <th className="text-[9px] font-bold uppercase text-slate-455 pb-3">Channel</th>
+                        <th className="text-[9px] font-bold uppercase text-slate-455 pb-3">Purpose</th>
                         <th className="text-[9px] font-bold uppercase text-slate-455 pb-3">Date</th>
                       </tr>
                     </thead>
@@ -692,8 +789,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                           <td className="py-3.5 text-xs text-slate-500 font-medium">{tx.matricNumber}</td>
                           <td className="py-3.5 text-xs text-secondary font-black">₦{tx.amount.toLocaleString()}</td>
                           <td className="py-3.5">
-                            <span className="text-[9px] font-bold uppercase text-slate-400">
-                              {tx.purpose.includes('Admin') ? 'Admin Manual' : 'Paystack API'}
+                            <span className="text-[9px] font-bold uppercase text-slate-450">
+                              {tx.purpose}
                             </span>
                           </td>
                           <td className="py-3.5 text-xs text-slate-400">{new Date(tx.date).toLocaleDateString()}</td>
@@ -706,7 +803,190 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
             </motion.div>
           )}
 
-          {/* TAB 3: ELECTION BALLOT SETUP */}
+          {/* TAB 3: PAST QUESTIONS SETUP */}
+          {activeTab === 'past-questions' && (
+            <motion.div
+              key="past-questions-panel"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              className="space-y-6"
+            >
+              {/* Add New Past Question Form */}
+              <div className="premium-card p-6 sm:p-8 bg-white">
+                <h3 className="text-lg font-display font-black text-secondary tracking-tight mb-4 flex items-center gap-2">
+                  <BookOpen size={18} className="text-red-500" /> Catalog New Past Question
+                </h3>
+
+                {pqFormSuccess && (
+                  <div className="mb-4 p-4 bg-green-50 border border-green-200 text-green-700 rounded-2xl text-xs font-black uppercase tracking-wider">
+                    Past Question Added Successfully!
+                  </div>
+                )}
+
+                <form onSubmit={handleAddPastQuestion} className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[9px] uppercase tracking-wider font-bold text-slate-400">Course Title</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Algebra and Trigonometry"
+                        value={pqTitle}
+                        onChange={(e) => setPqTitle(e.target.value)}
+                        className="w-full px-5 py-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-secondary"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] uppercase tracking-wider font-bold text-slate-400">Course Code</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. MTH 111"
+                        value={pqCourseCode}
+                        onChange={(e) => setPqCourseCode(e.target.value)}
+                        className="w-full px-5 py-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-secondary"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[9px] uppercase tracking-wider font-bold text-slate-400">Department</label>
+                      <select
+                        value={pqDept}
+                        onChange={(e) => setPqDept(e.target.value as any)}
+                        className="w-full px-5 py-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-550"
+                      >
+                        <option value="Computer">Computer</option>
+                        <option value="Electrical">Electrical</option>
+                        <option value="Mechanical">Mechanical</option>
+                        <option value="Civil">Civil</option>
+                        <option value="Chemical">Chemical</option>
+                        <option value="Industrial">Industrial</option>
+                        <option value="General">General (Faculty-wide)</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] uppercase tracking-wider font-bold text-slate-400">Academic Level</label>
+                      <select
+                        value={pqLevel}
+                        onChange={(e) => setPqLevel(e.target.value as any)}
+                        className="w-full px-5 py-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-550"
+                      >
+                        <option value="ND1">ND1</option>
+                        <option value="ND2">ND2</option>
+                        <option value="HND1">HND1</option>
+                        <option value="HND2">HND2</option>
+                        <option value="All">All Levels</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] uppercase tracking-wider font-bold text-slate-400">Document URL Link</label>
+                      <div className="relative">
+                        <input
+                          type="url"
+                          required
+                          value={pqFileUrl}
+                          onChange={(e) => setPqFileUrl(e.target.value)}
+                          className="w-full px-5 py-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-secondary pr-10"
+                        />
+                        <Link2 className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="bg-secondary hover:bg-secondary/95 text-white font-bold px-8 py-3.5 rounded-xl text-xs tracking-widest uppercase shadow-md flex items-center justify-center gap-2"
+                  >
+                    <Plus size={14} /> Publish Past Question
+                  </button>
+                </form>
+              </div>
+
+              {/* Past Questions Listing Grid */}
+              <div className="premium-card p-6 bg-white space-y-6">
+                <div className="flex flex-col sm:flex-row justify-between items-stretch gap-4">
+                  <div className="flex-1 relative">
+                    <input
+                      type="text"
+                      placeholder="Search published papers by code or title..."
+                      value={searchPqQuery}
+                      onChange={(e) => setSearchPqQuery(e.target.value)}
+                      className="w-full px-10 py-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold"
+                    />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                  </div>
+
+                  <div className="flex gap-2">
+                    <select
+                      value={pqDeptFilter}
+                      onChange={(e) => setPqDeptFilter(e.target.value)}
+                      className="px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-500"
+                    >
+                      <option value="All">All Depts</option>
+                      <option value="Computer">Computer</option>
+                      <option value="Electrical">Electrical</option>
+                      <option value="Mechanical">Mechanical</option>
+                      <option value="Civil">Civil</option>
+                      <option value="Chemical">Chemical</option>
+                      <option value="Industrial">Industrial</option>
+                      <option value="General">General</option>
+                    </select>
+
+                    <select
+                      value={pqLevelFilter}
+                      onChange={(e) => setPqLevelFilter(e.target.value)}
+                      className="px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-500"
+                    >
+                      <option value="All">All Levels</option>
+                      <option value="ND1">ND1</option>
+                      <option value="ND2">ND2</option>
+                      <option value="HND1">HND1</option>
+                      <option value="HND2">HND2</option>
+                      <option value="All">All</option>
+                    </select>
+                  </div>
+                </div>
+
+                {filteredPastQuestions.length === 0 ? (
+                  <p className="text-slate-400 text-xs font-light text-center py-6">No past questions matched the active filters</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {filteredPastQuestions.map((pq) => (
+                      <div key={pq.id} className="bg-slate-50/50 p-4 rounded-xl border border-slate-200 flex justify-between items-center gap-4">
+                        <div className="overflow-hidden">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded-full bg-red-100 border border-red-200 text-red-650 text-[8px] font-black uppercase">
+                              {pq.courseCode}
+                            </span>
+                            <span className="text-[9px] text-slate-400 font-bold">{pq.level}</span>
+                          </div>
+                          <h4 className="font-bold text-xs text-secondary truncate mt-1">{pq.title}</h4>
+                          <span className="text-[8px] font-bold text-slate-400 block tracking-widest uppercase">
+                            {pq.department} Engr.
+                          </span>
+                        </div>
+
+                        <button
+                          onClick={() => handleDeletePastQuestion(pq.id)}
+                          className="p-2.5 rounded-xl bg-slate-100 hover:bg-red-500/10 text-slate-400 hover:text-red-500 transition-colors shrink-0"
+                          title="Delete resource"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* TAB 4: ELECTION SETUP */}
           {activeTab === 'elections' && (
             <motion.div
               key="elections-panel"
@@ -728,7 +1008,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                   className={`font-bold px-6 py-4.5 rounded-xl text-xs tracking-wider uppercase transition-all shadow-sm ${
                     isElectionActive 
                       ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
-                      : 'bg-slate-200 hover:bg-slate-300 text-slate-600'
+                      : 'bg-slate-200 hover:bg-slate-305 text-slate-655'
                   }`}
                 >
                   Status: {isElectionActive ? 'Ballot Open' : 'Ballot Closed'}
@@ -737,7 +1017,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
 
               {/* Add Election Post Form */}
               <div className="premium-card p-6 bg-white">
-                <h4 className="text-xs font-black uppercase tracking-wider text-slate-450 mb-3">Create New Office Position</h4>
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-455 mb-3">Create New Office Position</h4>
                 <form onSubmit={handleAddElectionPost} className="flex flex-col sm:flex-row gap-3">
                   <input
                     type="text"
@@ -767,7 +1047,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                     <div className="flex gap-2">
                       <button
                         onClick={() => openAddCandidate(post.id)}
-                        className="bg-red-50 hover:bg-red-100 text-red-650 font-bold px-3 py-2 rounded-lg text-[9px] tracking-wider uppercase flex items-center gap-1 transition-colors"
+                        className="bg-red-50 hover:bg-red-100 text-red-655 font-bold px-3 py-2 rounded-lg text-[9px] tracking-wider uppercase flex items-center gap-1 transition-colors"
                       >
                         <Plus size={12} /> Add Candidate
                       </button>
@@ -789,7 +1069,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                         <div key={cand.id} className="bg-slate-50/50 p-4 rounded-xl border border-slate-200 flex items-start justify-between gap-4">
                           <div className="space-y-2">
                             <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 rounded-lg bg-red-100 flex items-center justify-center font-display font-black text-red-600 text-sm uppercase">
+                              <div className="w-9 h-9 rounded-lg bg-red-100 flex items-center justify-center font-display font-black text-red-650 text-sm uppercase">
                                 {cand.name.replace('Comr. ', '').replace('Engr. ', '').substring(0, 2)}
                               </div>
                               <div>
@@ -800,7 +1080,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                             <p className="text-slate-500 text-xs font-light leading-relaxed">
                               "{cand.manifesto}"
                             </p>
-                            <div className="text-[9px] font-bold text-slate-450 uppercase tracking-widest">
+                            <div className="text-[9px] font-bold text-slate-455 uppercase tracking-widest">
                               Votes: <strong className="text-secondary">{cand.votes}</strong>
                             </div>
                           </div>
@@ -820,7 +1100,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
             </motion.div>
           )}
 
-          {/* TAB 4: NAPES IDEAS BOX */}
+          {/* TAB 5: NAPES IDEAS BOX */}
           {activeTab === 'ideas' && (
             <motion.div
               key="ideas-panel"
@@ -908,7 +1188,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                   placeholder="e.g. Samson Beloved"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-secondary"
                 />
               </div>
 
@@ -922,7 +1202,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                   value={matricNumber}
                   onChange={(e) => setMatricNumber(e.target.value)}
                   className={`w-full px-4 py-2.5 rounded-xl border text-xs font-semibold ${
-                    modalMode === 'edit' ? 'bg-slate-100 text-slate-450 border-slate-200 cursor-not-allowed' : 'bg-slate-50 border-slate-200'
+                    modalMode === 'edit' ? 'bg-slate-100 text-slate-450 border-slate-200 cursor-not-allowed text-slate-400' : 'bg-slate-50 border-slate-200 text-secondary'
                   }`}
                 />
               </div>
@@ -935,7 +1215,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-secondary"
                   />
                 </div>
                 <div className="space-y-1">
@@ -945,7 +1225,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                     required
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-secondary"
                   />
                 </div>
               </div>
@@ -981,17 +1261,31 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5 pt-2">
-                <input
-                  type="checkbox"
-                  id="isPaidCheck"
-                  checked={isPaid}
-                  onChange={(e) => setIsPaid(e.target.checked)}
-                  className="w-4 h-4 rounded text-red-650 focus:ring-red-650/20"
-                />
-                <label htmlFor="isPaidCheck" className="text-xs text-secondary font-black cursor-pointer">
-                  Approve Annual Dues clearance immediately
-                </label>
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <div className="flex items-center gap-2.5">
+                  <input
+                    type="checkbox"
+                    id="isFacultyPaidCheck"
+                    checked={isFacultyPaid}
+                    onChange={(e) => setIsFacultyPaid(e.target.checked)}
+                    className="w-4 h-4 rounded text-red-655 focus:ring-red-655/20"
+                  />
+                  <label htmlFor="isFacultyPaidCheck" className="text-xs text-secondary font-black cursor-pointer">
+                    Approve Faculty Dues Clearance (₦5,000)
+                  </label>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <input
+                    type="checkbox"
+                    id="isDeptPaidCheck"
+                    checked={isDeptPaid}
+                    onChange={(e) => setIsDeptPaid(e.target.checked)}
+                    className="w-4 h-4 rounded text-red-655 focus:ring-red-655/20"
+                  />
+                  <label htmlFor="isDeptPaidCheck" className="text-xs text-secondary font-black cursor-pointer">
+                    Approve Department Dues Clearance (₦3,000)
+                  </label>
+                </div>
               </div>
 
               <button
@@ -1028,7 +1322,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                   placeholder="e.g. Comr. Olatunji Williams"
                   value={candName}
                   onChange={(e) => setCandName(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-secondary"
                 />
               </div>
 
@@ -1040,7 +1334,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                   placeholder="Enter candidate manifesto or legacy campaign slogan..."
                   value={candManifesto}
                   onChange={(e) => setCandManifesto(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium resize-none leading-relaxed"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium resize-none leading-relaxed text-secondary"
                 />
               </div>
 

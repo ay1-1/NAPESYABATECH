@@ -8,7 +8,9 @@ export interface Student {
   department: "Civil" | "Mechanical" | "Electrical" | "Computer" | "Chemical" | "Industrial";
   level: "ND1" | "ND2" | "HND1" | "HND2";
   session: string;
-  isPaid: boolean;
+  isPaid: boolean; // Retained for compatibility (represents overall cleared status)
+  isFacultyPaid: boolean;
+  isDeptPaid: boolean;
   password?: string;
   avatarUrl?: string;
 }
@@ -47,6 +49,16 @@ export interface SupportTicket {
   status: "open" | "resolved";
 }
 
+export interface PastQuestion {
+  id: string;
+  title: string;
+  courseCode: string;
+  department: "Civil" | "Mechanical" | "Electrical" | "Computer" | "Chemical" | "Industrial" | "General";
+  level: "ND1" | "ND2" | "HND1" | "HND2" | "All";
+  fileUrl: string; // Simulated link
+  createdAt: string;
+}
+
 // Initial mock data
 const defaultStudents: Student[] = [
   {
@@ -58,6 +70,8 @@ const defaultStudents: Student[] = [
     level: "HND2",
     session: "2025/2026",
     isPaid: true,
+    isFacultyPaid: true,
+    isDeptPaid: true,
     password: "password",
     avatarUrl: ""
   },
@@ -70,6 +84,8 @@ const defaultStudents: Student[] = [
     level: "ND2",
     session: "2025/2026",
     isPaid: false,
+    isFacultyPaid: false,
+    isDeptPaid: false,
     password: "password",
     avatarUrl: ""
   },
@@ -82,6 +98,8 @@ const defaultStudents: Student[] = [
     level: "HND1",
     session: "2025/2026",
     isPaid: true,
+    isFacultyPaid: true,
+    isDeptPaid: true,
     password: "password",
     avatarUrl: ""
   },
@@ -94,6 +112,8 @@ const defaultStudents: Student[] = [
     level: "ND1",
     session: "2025/2026",
     isPaid: false,
+    isFacultyPaid: false,
+    isDeptPaid: false,
     password: "password",
     avatarUrl: ""
   },
@@ -106,6 +126,8 @@ const defaultStudents: Student[] = [
     level: "HND1",
     session: "2025/2026",
     isPaid: false,
+    isFacultyPaid: false,
+    isDeptPaid: false,
     password: "password",
     avatarUrl: ""
   }
@@ -117,19 +139,39 @@ const defaultTransactions: Transaction[] = [
     matricNumber: "F/HD/21/3210001",
     studentName: "Samson Beloved",
     amount: 5000,
-    purpose: "NAPES Annual Dues",
+    purpose: "Faculty Dues",
     reference: "NP-739274",
     date: "2026-05-10T14:32:00Z",
     status: "success"
   },
   {
     id: "tx-002",
+    matricNumber: "F/HD/21/3210001",
+    studentName: "Samson Beloved",
+    amount: 3000,
+    purpose: "Departmental Dues",
+    reference: "NP-739279",
+    date: "2026-05-10T14:35:00Z",
+    status: "success"
+  },
+  {
+    id: "tx-003",
     matricNumber: "F/HD/22/3210003",
     studentName: "John Smith",
     amount: 5000,
-    purpose: "NAPES Annual Dues",
+    purpose: "Faculty Dues",
     reference: "NP-739275",
     date: "2026-05-12T09:15:00Z",
+    status: "success"
+  },
+  {
+    id: "tx-004",
+    matricNumber: "F/HD/22/3210003",
+    studentName: "John Smith",
+    amount: 3000,
+    purpose: "Departmental Dues",
+    reference: "NP-739281",
+    date: "2026-05-12T09:20:00Z",
     status: "success"
   }
 ];
@@ -186,9 +228,48 @@ const defaultTickets: SupportTicket[] = [
     id: "ticket-2",
     email: "student2@yabatech.edu.ng",
     subject: "paystack",
-    message: "My payment for the annual dues went through on Paystack but my portal account status is still showing clearance pending.",
+    message: "My payment for the dues went through on Paystack but my portal account status is still showing clearance pending.",
     date: "2026-05-23T16:45:00Z",
     status: "open"
+  }
+];
+
+const defaultPastQuestions: PastQuestion[] = [
+  {
+    id: "pq-001",
+    title: "Algebra and Trigonometry",
+    courseCode: "MTH 111",
+    department: "Computer",
+    level: "ND1",
+    fileUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+    createdAt: "2026-05-10T10:00:00Z"
+  },
+  {
+    id: "pq-002",
+    title: "Object Oriented Programming",
+    courseCode: "COM 212",
+    department: "Computer",
+    level: "ND2",
+    fileUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+    createdAt: "2026-05-12T11:00:00Z"
+  },
+  {
+    id: "pq-003",
+    title: "Electrical Science I",
+    courseCode: "EEC 115",
+    department: "Electrical",
+    level: "ND1",
+    fileUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+    createdAt: "2026-05-15T09:00:00Z"
+  },
+  {
+    id: "pq-004",
+    title: "Applied Mechanics",
+    courseCode: "MEC 111",
+    department: "Mechanical",
+    level: "ND1",
+    fileUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+    createdAt: "2026-05-18T14:00:00Z"
   }
 ];
 
@@ -205,6 +286,9 @@ export const initLocalStorage = () => {
   }
   if (!localStorage.getItem("napes_tickets")) {
     localStorage.setItem("napes_tickets", JSON.stringify(defaultTickets));
+  }
+  if (!localStorage.getItem("napes_past_questions")) {
+    localStorage.setItem("napes_past_questions", JSON.stringify(defaultPastQuestions));
   }
   if (!localStorage.getItem("napes_election_active")) {
     localStorage.setItem("napes_election_active", "true");
@@ -245,6 +329,15 @@ export const getTickets = (): SupportTicket[] => {
 
 export const saveTickets = (tickets: SupportTicket[]) => {
   localStorage.setItem("napes_tickets", JSON.stringify(tickets));
+};
+
+export const getPastQuestions = (): PastQuestion[] => {
+  initLocalStorage();
+  return JSON.parse(localStorage.getItem("napes_past_questions") || "[]");
+};
+
+export const savePastQuestions = (pqs: PastQuestion[]) => {
+  localStorage.setItem("napes_past_questions", JSON.stringify(pqs));
 };
 
 export const getElectionStatus = (): boolean => {
