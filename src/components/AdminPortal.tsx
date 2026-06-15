@@ -34,6 +34,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
   const [isElectionActive, setIsElectionActive] = useState(true);
   const [pastQuestions, setPastQuestions] = useState<PastQuestion[]>([]);
 
+  // Packet Africa Admin States
+  const [packetTransactions, setPacketTransactions] = useState<any[]>([]);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState("");
+  const [isFetchingPacket, setIsFetchingPacket] = useState(false);
+  const [paymentsSubTab, setPaymentsSubTab] = useState<'local' | 'packet'>('local');
+
   // View state
   const [activeTab, setActiveTab] = useState<'students' | 'payments' | 'elections' | 'past-questions' | 'ideas'>('students');
 
@@ -87,6 +94,129 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
       setPastQuestions(getPastQuestions());
     }
   }, [isAdminLoggedIn]);
+
+  const fetchPacketTransactions = async () => {
+    setIsFetchingPacket(true);
+    setSyncMessage("");
+    try {
+      const response = await fetch('/api/packet-transactions');
+      if (!response.ok) {
+        throw new Error('Failed to fetch from Packet Africa');
+      }
+      const data = await response.json();
+      const list = Array.isArray(data) ? data : (data.data || []);
+      setPacketTransactions(list);
+    } catch (err: any) {
+      console.error(err);
+      setSyncMessage(`Failed to load Packet Africa ledger: ${err.message}`);
+    } finally {
+      setIsFetchingPacket(false);
+    }
+  };
+
+  const handleSyncPacketPayments = async () => {
+    setIsSyncing(true);
+    setSyncMessage("");
+    try {
+      const response = await fetch('/api/packet-transactions');
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch Packet Africa transactions');
+      }
+
+      const packetTxs = Array.isArray(data) ? data : (data.data || []);
+      setPacketTransactions(packetTxs);
+      
+      let newSyncCount = 0;
+      const currentStudents = [...students];
+      let currentTxs = [...transactions];
+      
+      packetTxs.forEach((ptx: any) => {
+        const status = (ptx.status || "").toLowerCase();
+        const isSuccess = status === "success" || status === "successful" || status === "completed" || status === "paid";
+        if (!isSuccess) return;
+
+        const amount = parseFloat(ptx.amount || "0");
+        const totalAmount = parseFloat(ptx.totalAmount || "0");
+        const baseAmount = amount || totalAmount;
+        
+        let duesType: 'faculty' | 'department' | null = null;
+        if (baseAmount === 5000) duesType = 'faculty';
+        else if (baseAmount === 3000) duesType = 'department';
+        
+        if (!duesType) return;
+
+        const email = (ptx.email || (ptx.customer && ptx.customer.email) || "").toLowerCase().trim();
+        
+        let matric = "";
+        if (ptx.matricNumber) {
+          matric = ptx.matricNumber;
+        } else if (ptx.metadata && (ptx.metadata.matricNumber || ptx.metadata.matric)) {
+          matric = ptx.metadata.matricNumber || ptx.metadata.matric;
+        } else if (ptx.customer && ptx.customer.customFields) {
+          const customKeys = Object.keys(ptx.customer.customFields);
+          const matricKey = customKeys.find(k => k.toLowerCase().includes("matric"));
+          if (matricKey) {
+            matric = ptx.customer.customFields[matricKey];
+          }
+        }
+        matric = matric.toLowerCase().trim();
+
+        const studentIndex = currentStudents.findIndex(s => 
+          s.matricNumber.toLowerCase() === matric || 
+          s.email.toLowerCase() === email
+        );
+
+        if (studentIndex !== -1) {
+          const student = currentStudents[studentIndex];
+          const isFaculty = duesType === 'faculty';
+          const alreadyPaid = isFaculty ? student.isFacultyPaid : student.isDeptPaid;
+
+          if (!alreadyPaid) {
+            if (isFaculty) student.isFacultyPaid = true;
+            else student.isDeptPaid = true;
+            student.isPaid = student.isFacultyPaid && student.isDeptPaid;
+
+            const newTx: Transaction = {
+              id: `tx-sync-${ptx.reference || ptx.id || Date.now()}`,
+              matricNumber: student.matricNumber,
+              studentName: student.fullName,
+              amount: baseAmount,
+              purpose: isFaculty ? "Faculty Dues (Sync)" : "Departmental Dues (Sync)",
+              reference: ptx.reference || `PA-${Math.floor(100000 + Math.random() * 900000)}`,
+              date: ptx.createdAt || ptx.date || new Date().toISOString(),
+              status: "success"
+            };
+
+            currentTxs = [newTx, ...currentTxs];
+            newSyncCount++;
+          }
+        }
+      });
+
+      if (newSyncCount > 0) {
+        setStudents(currentStudents);
+        saveStudents(currentStudents);
+        setTransactions(currentTxs);
+        saveTransactions(currentTxs);
+        setSyncMessage(`Auto-sync complete! ${newSyncCount} new student payment(s) cleared and logged.`);
+      } else {
+        setSyncMessage("Auto-sync complete. No new pending student payments found on Packet Africa.");
+      }
+    } catch (err: any) {
+      console.error("Sync Error:", err);
+      setSyncMessage(`Error syncing payments: ${err.message}`);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAdminLoggedIn && activeTab === 'payments') {
+      fetchPacketTransactions();
+    }
+  }, [isAdminLoggedIn, activeTab, students]);
 
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -759,45 +889,190 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
-              className="premium-card p-6 sm:p-10 bg-white"
+              className="space-y-6"
             >
-              <h3 className="text-lg font-display font-black text-secondary tracking-tight mb-6">Annual Dues Audit Trail</h3>
-              
-              {transactions.length === 0 ? (
-                <div className="text-center py-10">
-                  <CreditCard size={32} className="text-slate-350 mx-auto mb-3" />
-                  <p className="text-slate-400 text-xs font-light">No ledger entries detected</p>
+              {/* Auditor Sub Tabs Selector */}
+              <div className="flex gap-2 border-b border-slate-100 pb-3">
+                <button
+                  onClick={() => setPaymentsSubTab('local')}
+                  className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
+                    paymentsSubTab === 'local'
+                      ? 'bg-secondary text-white shadow-sm'
+                      : 'text-slate-400 hover:text-slate-900 hover:bg-slate-50'
+                  }`}
+                >
+                  Local Dues Ledger
+                </button>
+                <button
+                  onClick={() => setPaymentsSubTab('packet')}
+                  className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                    paymentsSubTab === 'packet'
+                      ? 'bg-secondary text-white shadow-sm'
+                      : 'text-slate-400 hover:text-slate-900 hover:bg-slate-50'
+                  }`}
+                >
+                  <Link2 size={12} /> Packet Africa Gateway
+                </button>
+              </div>
+
+              {paymentsSubTab === 'local' ? (
+                <div className="premium-card p-6 sm:p-10 bg-white">
+                  <h3 className="text-lg font-display font-black text-secondary tracking-tight mb-6">Annual Dues Audit Trail</h3>
+                  
+                  {transactions.length === 0 ? (
+                    <div className="text-center py-10">
+                      <CreditCard size={32} className="text-slate-350 mx-auto mb-3" />
+                      <p className="text-slate-400 text-xs font-light">No ledger entries detected</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse min-w-[650px]">
+                        <thead>
+                          <tr className="border-b border-slate-100 pb-3">
+                            <th className="text-[9px] font-bold uppercase text-slate-400 pb-3">Reference ID</th>
+                            <th className="text-[9px] font-bold uppercase text-slate-455 pb-3">Student Name</th>
+                            <th className="text-[9px] font-bold uppercase text-slate-455 pb-3">Matric No</th>
+                            <th className="text-[9px] font-bold uppercase text-slate-455 pb-3">Amount</th>
+                            <th className="text-[9px] font-bold uppercase text-slate-455 pb-3">Purpose</th>
+                            <th className="text-[9px] font-bold uppercase text-slate-455 pb-3">Date</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {transactions.map((tx) => (
+                            <tr key={tx.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors">
+                              <td className="py-3.5 text-xs font-bold text-slate-650">{tx.reference}</td>
+                              <td className="py-3.5 text-xs text-secondary font-black">{tx.studentName}</td>
+                              <td className="py-3.5 text-xs text-slate-500 font-medium">{tx.matricNumber}</td>
+                              <td className="py-3.5 text-xs text-secondary font-black">₦{tx.amount.toLocaleString()}</td>
+                              <td className="py-3.5">
+                                <span className="text-[9px] font-bold uppercase text-slate-450">
+                                  {tx.purpose}
+                                </span>
+                              </td>
+                              <td className="py-3.5 text-xs text-slate-400">{new Date(tx.date).toLocaleDateString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse min-w-[650px]">
-                    <thead>
-                      <tr className="border-b border-slate-100 pb-3">
-                        <th className="text-[9px] font-bold uppercase text-slate-400 pb-3">Reference ID</th>
-                        <th className="text-[9px] font-bold uppercase text-slate-455 pb-3">Student Name</th>
-                        <th className="text-[9px] font-bold uppercase text-slate-455 pb-3">Matric No</th>
-                        <th className="text-[9px] font-bold uppercase text-slate-455 pb-3">Amount</th>
-                        <th className="text-[9px] font-bold uppercase text-slate-455 pb-3">Purpose</th>
-                        <th className="text-[9px] font-bold uppercase text-slate-455 pb-3">Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {transactions.map((tx) => (
-                        <tr key={tx.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors">
-                          <td className="py-3.5 text-xs font-bold text-slate-650">{tx.reference}</td>
-                          <td className="py-3.5 text-xs text-secondary font-black">{tx.studentName}</td>
-                          <td className="py-3.5 text-xs text-slate-500 font-medium">{tx.matricNumber}</td>
-                          <td className="py-3.5 text-xs text-secondary font-black">₦{tx.amount.toLocaleString()}</td>
-                          <td className="py-3.5">
-                            <span className="text-[9px] font-bold uppercase text-slate-450">
-                              {tx.purpose}
-                            </span>
-                          </td>
-                          <td className="py-3.5 text-xs text-slate-400">{new Date(tx.date).toLocaleDateString()}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="premium-card p-6 sm:p-10 bg-white space-y-6">
+                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-slate-100 pb-4">
+                    <div>
+                      <h3 className="text-lg font-display font-black text-secondary tracking-tight">Packet Africa Transaction Logs</h3>
+                      <p className="text-slate-400 text-xs mt-1">Live audits and logs retrieved directly from your organization's Packet Africa account.</p>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <button
+                        onClick={fetchPacketTransactions}
+                        disabled={isFetchingPacket}
+                        className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold rounded-xl transition-all uppercase tracking-wider flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                      >
+                        {isFetchingPacket ? 'Refreshing...' : 'Refresh List'}
+                      </button>
+                      
+                      <button
+                        onClick={handleSyncPacketPayments}
+                        disabled={isSyncing}
+                        className="px-5 py-2 bg-red-655 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-all uppercase tracking-wider shadow-sm flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                      >
+                        {isSyncing ? 'Syncing...' : 'Auto-Sync Dues'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {syncMessage && (
+                    <div className={`p-4 rounded-xl text-xs font-bold flex items-center gap-2 ${
+                      syncMessage.toLowerCase().includes('error') || syncMessage.toLowerCase().includes('failed')
+                        ? 'bg-red-50 border border-red-200 text-red-700'
+                        : 'bg-green-50 border border-green-200 text-green-700'
+                    }`}>
+                      {syncMessage.toLowerCase().includes('error') || syncMessage.toLowerCase().includes('failed') ? <X size={14} /> : <CheckCircle size={14} />}
+                      {syncMessage}
+                    </div>
+                  )}
+
+                  {isFetchingPacket && packetTransactions.length === 0 ? (
+                    <div className="text-center py-20">
+                      <div className="animate-spin w-8 h-8 border-4 border-red-555 border-t-transparent rounded-full mx-auto mb-4" />
+                      <p className="text-slate-400 text-xs font-medium">Fetching transaction ledger from Packet Africa...</p>
+                    </div>
+                  ) : packetTransactions.length === 0 ? (
+                    <div className="text-center py-16 border-2 border-dashed border-slate-100 rounded-2xl">
+                      <CreditCard size={32} className="text-slate-355 mx-auto mb-3" />
+                      <p className="text-slate-400 text-xs font-light">No transaction records found on Packet Africa account</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse min-w-[800px]">
+                        <thead>
+                          <tr className="border-b border-slate-100 pb-3">
+                            <th className="text-[9px] font-bold uppercase text-slate-400 pb-3">Reference ID</th>
+                            <th className="text-[9px] font-bold uppercase text-slate-455 pb-3">Customer Name</th>
+                            <th className="text-[9px] font-bold uppercase text-slate-455 pb-3">Email</th>
+                            <th className="text-[9px] font-bold uppercase text-slate-455 pb-3">Matric No</th>
+                            <th className="text-[9px] font-bold uppercase text-slate-455 pb-3">Amount</th>
+                            <th className="text-[9px] font-bold uppercase text-slate-455 pb-3">Date</th>
+                            <th className="text-[9px] font-bold uppercase text-slate-455 pb-3">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {packetTransactions.map((tx: any, idx) => {
+                            let txMatric = "N/A";
+                            if (tx.matricNumber) {
+                              txMatric = tx.matricNumber;
+                            } else if (tx.metadata && (tx.metadata.matricNumber || tx.metadata.matric)) {
+                              txMatric = tx.metadata.matricNumber || tx.metadata.matric;
+                            } else if (tx.customer && tx.customer.customFields) {
+                              const customKeys = Object.keys(tx.customer.customFields);
+                              const matricKey = customKeys.find(k => k.toLowerCase().includes("matric"));
+                              if (matricKey) {
+                                txMatric = tx.customer.customFields[matricKey];
+                              }
+                            }
+
+                            const txStatus = (tx.status || "").toUpperCase();
+                            const isSuccess = txStatus === "SUCCESS" || txStatus === "SUCCESSFUL" || txStatus === "COMPLETED" || txStatus === "PAID";
+
+                            return (
+                              <tr key={tx.reference || tx.id || idx} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors">
+                                <td className="py-3.5 text-xs font-bold text-slate-650">{tx.reference || tx.id}</td>
+                                <td className="py-3.5 text-xs text-secondary font-black">
+                                  {tx.customer?.name || tx.studentName || "N/A"}
+                                </td>
+                                <td className="py-3.5 text-xs text-slate-500 font-medium">
+                                  {tx.customer?.email || tx.email || "N/A"}
+                                </td>
+                                <td className="py-3.5 text-xs text-slate-650 font-bold uppercase">
+                                  {txMatric}
+                                </td>
+                                <td className="py-3.5 text-xs text-secondary font-black">
+                                  ₦{(parseFloat(tx.amount || tx.totalAmount || "0")).toLocaleString()}
+                                </td>
+                                <td className="py-3.5 text-xs text-slate-400">
+                                  {new Date(tx.createdAt || tx.date).toLocaleDateString()}
+                                </td>
+                                <td className="py-3.5">
+                                  <span className={`px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-wider ${
+                                    isSuccess
+                                      ? 'bg-green-50 border-green-200 text-green-600'
+                                      : txStatus === 'FAILED'
+                                        ? 'bg-red-50 border-red-200 text-red-600'
+                                        : 'bg-orange-50 border-orange-200 text-orange-600'
+                                  }`}>
+                                    {txStatus}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               )}
             </motion.div>
