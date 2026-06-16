@@ -49,14 +49,6 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
   const [paymentStep, setPaymentStep] = useState<'details' | 'otp' | 'processing' | 'success'>('details');
   const [otpCode, setOtpCode] = useState('');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-
-  // Packet Africa Verification State
-  const [packetEmail, setPacketEmail] = useState('');
-  const [packetRef, setPacketRef] = useState('');
-  const [packetDuesType, setPacketDuesType] = useState<'faculty' | 'department'>('faculty');
-  const [isVerifyingPacket, setIsVerifyingPacket] = useState(false);
-  const [packetVerifyError, setPacketVerifyError] = useState('');
-  const [packetVerifySuccess, setPacketVerifySuccess] = useState('');
   
   // Printable Certificates State
   const [certificateOpen, setCertificateOpen] = useState(false);
@@ -94,9 +86,6 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
       setPastQuestions(getPastQuestions());
       setFilterPqDept(currentStudent.department);
       setFilterPqLevel(currentStudent.level);
-      
-      // Prefill verification email
-      setPacketEmail(currentStudent.email);
     }
   }, [currentStudent]);
 
@@ -221,86 +210,6 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
 
       setPaymentStep('success');
     }, 2000);
-  };
-
-  const handleVerifyPacketPayment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentStudent) return;
-
-    setPacketVerifyError('');
-    setPacketVerifySuccess('');
-    setIsVerifyingPacket(true);
-
-    try {
-      const response = await fetch('/api/verify-napes-payment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          matricNumber: currentStudent.matricNumber,
-          email: packetEmail.trim(),
-          duesType: packetDuesType,
-          reference: packetRef.trim() || undefined
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        const isFaculty = packetDuesType === 'faculty';
-        
-        // Update student payment status in list and save
-        const updatedStudents = students.map(s => {
-          if (s.matricNumber === currentStudent.matricNumber) {
-            const nextFaculty = isFaculty ? true : s.isFacultyPaid;
-            const nextDept = !isFaculty ? true : s.isDeptPaid;
-            return {
-              ...s,
-              isFacultyPaid: nextFaculty,
-              isDeptPaid: nextDept,
-              isPaid: nextFaculty && nextDept
-            };
-          }
-          return s;
-        });
-
-        setStudents(updatedStudents);
-        saveStudents(updatedStudents);
-
-        // Update current student state
-        const selfUpdated = updatedStudents.find(s => s.matricNumber === currentStudent.matricNumber);
-        if (selfUpdated) {
-          setCurrentStudent(selfUpdated);
-        }
-
-        // Save transaction history record
-        const newTx: Transaction = {
-          id: data.transaction.id,
-          matricNumber: currentStudent.matricNumber,
-          studentName: currentStudent.fullName,
-          amount: data.transaction.amount,
-          purpose: data.transaction.purpose,
-          reference: data.transaction.reference,
-          date: data.transaction.date,
-          status: 'success'
-        };
-
-        const allTx = [newTx, ...getTransactions()];
-        saveTransactions(allTx);
-        setTransactions(allTx.filter(t => t.matricNumber === currentStudent.matricNumber));
-
-        setPacketVerifySuccess(`Clearance successful! ${data.transaction.purpose} verified via Packet Africa.`);
-        setPacketRef('');
-      } else {
-        setPacketVerifyError(data.message || 'Verification failed. Transaction not found or unpaid.');
-      }
-    } catch (err: any) {
-      console.error('Error verifying payment:', err);
-      setPacketVerifyError('Network error connecting to verification server.');
-    } finally {
-      setIsVerifyingPacket(false);
-    }
   };
 
   const openCertificate = (type: 'faculty' | 'department') => {
@@ -733,95 +642,24 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onLogout, initialM
                 </div>
               </div>
 
-              {/* Packet Africa Dues Verification Panel */}
+              {/* Packet Africa Auto-Sync Information Card */}
               <div className="premium-card p-6 sm:p-8 bg-white border border-slate-100 shadow-sm">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 border-b border-slate-100 pb-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
-                    <h3 className="text-lg font-display font-black text-secondary tracking-tight">Packet Africa Verification Console</h3>
-                    <p className="text-slate-400 text-xs mt-1">Paid your dues on Packet Africa? Sync your payment details below to clear your status instantly.</p>
+                    <h3 className="text-lg font-display font-black text-secondary tracking-tight">Automatic Clearance Reconciler</h3>
+                    <p className="text-slate-400 text-xs mt-1">
+                      Payments made via Packet Africa are checked and synced automatically by the Admin Auditor daily. Once your payment is verified, your clearance certificates will unlock here.
+                    </p>
                   </div>
                   <a 
                     href="https://www.packetafrica.com/pay/napesyabachapterdue" 
                     target="_blank" 
                     rel="noreferrer" 
-                    className="text-[9px] uppercase tracking-wider font-bold text-primary hover:text-primary/80 transition-colors flex items-center gap-1 self-start md:self-center"
+                    className="px-6 py-3.5 bg-secondary hover:bg-secondary/95 text-white font-bold rounded-xl text-xs tracking-wider uppercase transition-all flex items-center gap-1.5 shrink-0 shadow-md text-center cursor-pointer"
                   >
-                    Go to Checkout Page <ChevronRight size={12} />
+                    Pay Dues Online <ChevronRight size={12} />
                   </a>
                 </div>
-
-                {packetVerifyError && (
-                  <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-semibold flex items-center gap-2">
-                    <X size={14} className="shrink-0" /> {packetVerifyError}
-                  </div>
-                )}
-
-                {packetVerifySuccess && (
-                  <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-xl text-xs font-bold flex items-center gap-2">
-                    <CheckCircle size={14} className="shrink-0" /> {packetVerifySuccess}
-                  </div>
-                )}
-
-                <form onSubmit={handleVerifyPacketPayment} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[9px] uppercase tracking-wider font-bold text-slate-400 ml-1">Dues Category</label>
-                      <select
-                        value={packetDuesType}
-                        onChange={(e) => setPacketDuesType(e.target.value as any)}
-                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-4 focus:ring-primary/5 appearance-none pr-8 bg-no-repeat"
-                        style={{
-                          backgroundImage: `url("data:image/svg+xml;utf8,<svg fill='%2364748b' height='18' viewBox='0 0 24 24' width='18' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>")`,
-                          backgroundPosition: 'right 12px center'
-                        }}
-                      >
-                        <option value="faculty">Faculty Dues (₦5,000)</option>
-                        <option value="department">Departmental Dues (₦3,000)</option>
-                      </select>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-[9px] uppercase tracking-wider font-bold text-slate-400 ml-1">Payment Email</label>
-                      <input
-                        type="email"
-                        required
-                        value={packetEmail}
-                        onChange={(e) => setPacketEmail(e.target.value)}
-                        placeholder="e.g. student@example.com"
-                        className="w-full px-5 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all text-xs font-semibold"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-[9px] uppercase tracking-wider font-bold text-slate-400 ml-1">Transaction Ref / ID (Optional)</label>
-                      <input
-                        type="text"
-                        value={packetRef}
-                        onChange={(e) => setPacketRef(e.target.value)}
-                        placeholder="e.g. PA-TEST-12345"
-                        className="w-full px-5 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all text-xs font-semibold"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end pt-2">
-                    <button
-                      type="submit"
-                      disabled={isVerifyingPacket}
-                      className="w-full md:w-auto px-8 py-3.5 bg-secondary hover:bg-secondary/95 text-white font-bold rounded-xl transition-all text-[10px] tracking-wider uppercase shadow-md flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isVerifyingPacket ? (
-                        <>
-                          <Loader2 size={12} className="animate-spin" /> Verifying...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles size={12} /> Sync & Clear Dues
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </form>
               </div>
 
               {/* Transactions List */}
